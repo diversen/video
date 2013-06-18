@@ -111,8 +111,8 @@ class video {
             $values['mimetype'] = $_FILES['file']['type'];
             $values['full_path'] = self::$options['flv_file_path'];
             $values['web_path'] = self::$options['flv_web_path'];
-                //$values['full_path_mp4'] = self::$options['mp4_file_path'];
-                //$values['web_path_mp4'] = self::$options['mp4_web_path'];
+            $values['full_path_mp4'] = self::$options['mp4_file_path'];
+            $values['web_path_mp4'] = self::$options['mp4_web_path'];
                 $res = $db->insert(self::$fileTable, $values);
                 if ($res) {
                     $db->commit();
@@ -169,7 +169,16 @@ EOF;
             
             $flv_file = file::getFilename($_FILES['file']['name']) . ".flv";
             $tmp_flv = "/tmp/" . $flv_file;
-            $res = $this->transformToFlv($_FILES['file']['tmp_name'], $tmp_flv);
+            $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_flv);
+            
+            if (!$res) {
+                self::$errors[] = lang::translate('video_could_not_transform_to_flv');
+                return false;
+            } 
+            
+            $mp4_file = file::getFilename($_FILES['file']['name']) . ".mp4";
+            $tmp_mp4 = "/tmp/" . $mp4_file;
+            $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_mp4);
             
             if (!$res) {
                 self::$errors[] = lang::translate('video_could_not_transform_to_flv');
@@ -184,23 +193,37 @@ EOF;
             mkdir($full_path, 0777, true);
         }
         
+        // copy flv
         $flv_web_path = $web_dir . "/" . $flv_file;
         $flv_full_path = $full_path . "/" . $flv_file;
         
         $copied = copy($tmp_flv, $flv_full_path);
         unlink($tmp_flv);
+        
+        // copy mp4
+        $mp4_web_path = $web_dir . "/" . $mp4_file;
+        $mp4_full_path = $full_path . "/" . $mp4_file;
+        
+        $copied = copy($tmp_mp4, $mp4_full_path);
+        unlink($tmp_mp4);
+        
 
         self::$options['flv_file_path'] = $flv_full_path;
         self::$options['flv_web_path'] = $flv_web_path;
+        
+        self::$options['mp4_file_path'] = $mp4_full_path;
+        self::$options['mp4_web_path'] = $mp4_web_path;
 
         return $copied;
     }
     
-    function transformToFlv ($full_filename, $full_filename_flv) { 
+    function transformVideo ($full_filename, $full_filename_flv) { 
         set_time_limit(0);
-        $ffmpeg_command = "ffmpeg -i \"$full_filename\" -ar 44100 -ab 96 -f flv \"$full_filename_flv\";";
+        
+        $command = "avconv -i \"$full_filename\" -c copy \"$full_filename_flv\";";
+        //$ffmpeg_command = "ffmpeg -i \"$full_filename\" -ar 44100 -ab 96 -f flv \"$full_filename_flv\";";
         $output = array();
-        exec($ffmpeg_command, $output, $ret);
+        exec($command, $output, $ret);
         if ($ret) {
             return false;
         }
@@ -462,8 +485,8 @@ function flowplayer_get_html ($row) {
    
 <div class="flowplayer">
    <video>
-    <source type="video/flv" src="$row[web_path]">  
-      
+    <source type="video/mp4" src="$row[web_path_mp4]">  
+    <source type="video/flv" src="$row[web_path]">        
    </video>
 </div>
 EOF;
