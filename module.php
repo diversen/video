@@ -59,7 +59,7 @@ class video {
         if ($method == 'delete' && isset($id)) {
             $legend = lang::translate('file_delete_label');
             html::legend($legend);
-            html::submit('submit', lang::translate('system_submit_delete'));
+            html::submit('submit', lang::translate('Delete'));
             html::formEnd();
             echo html::getStr();
             return;

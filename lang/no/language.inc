@@ -1,0 +1,31 @@
+<?php
+
+$_COS_LANG_MODULE['video_edit_file'] = 'Rediger video';
+$_COS_LANG_MODULE['video_add_file'] = 'Legg til video';
+$_COS_LANG_MODULE['video_delete_file'] = 'Slett video';
+$_COS_LANG_MODULE['video_edit_label'] = 'Rediger video';
+$_COS_LANG_MODULE['video_delete_label'] = 'Slett video';
+$_COS_LANG_MODULE['video_add_label'] = 'Legg til video';
+$_COS_LANG_MODULE['video_edit'] = 'Rediger';
+$_COS_LANG_MODULE['video_delete'] = 'Slett';
+$_COS_LANG_MODULE['video_add'] = 'Redigere videoer';
+$_COS_LANG_MODULE['video_form_abstract'] = 'Abstrakt';
+$_COS_LANG_MODULE['video_form_file'] = 'Velg video';
+$_COS_LANG_MODULE['video_delete_caption'] = 'Slett video';
+$_COS_LANG_MODULE['video_edit_caption'] = 'Rediger video';
+$_COS_LANG_MODULE['video_add_caption'] = 'Legg til ny video';
+$_COS_LANG_MODULE['video_no_file_specified'] = 'Ingen video valgt';
+$_COS_LANG_MODULE['video_file_too_big'] = 'Filen er for stor';
+$_COS_LANG_MODULE['video_attached'] = 'videoer';
+$_COS_LANG_MODULE['video_download'] = 'Last ned';
+$_COS_LANG_MODULE['video_add_new'] = 'Legg til ny';
+$_COS_LANG_MODULE['video_file_added'] = 'Filen lagt';
+$_COS_LANG_MODULE['video_file_deleted'] = 'Filen slettet';
+$_COS_LANG_MODULE['video_file_edited'] = 'File rettet';
+$_COS_LANG_MODULE['file_delete_label'] = 'Bekreft sletting video';
+$_COS_LANG_MODULE['file_edit_legend'] = 'Redigere File';
+$_COS_LANG_MODULE['file_add_legend'] = 'Legg til fil';
+$_COS_LANG_MODULE['file_abstract_label'] = 'Abstrakt';
+$_COS_LANG_MODULE['file_file_label'] = 'Velg en video';
+$_COS_LANG_MODULE['video_submit'] = 'Send';
+$_COS_LANG_MODULE['video_could_not_transform_to_flv'] = 'Kunne ikke komprimere video til. FLV format';

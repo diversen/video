@@ -1,0 +1,31 @@
+<?php
+
+$_COS_LANG_MODULE['video_edit_file'] = 'Redigera videoklipp';
+$_COS_LANG_MODULE['video_add_file'] = 'Lägg till video';
+$_COS_LANG_MODULE['video_delete_file'] = 'Radera inspelning';
+$_COS_LANG_MODULE['video_edit_label'] = 'Redigera videoklipp';
+$_COS_LANG_MODULE['video_delete_label'] = 'Radera inspelning';
+$_COS_LANG_MODULE['video_add_label'] = 'Lägg till video';
+$_COS_LANG_MODULE['video_edit'] = 'Redigera';
+$_COS_LANG_MODULE['video_delete'] = 'Radera';
+$_COS_LANG_MODULE['video_add'] = 'Redigera videoklipp';
+$_COS_LANG_MODULE['video_form_abstract'] = 'Abstrakt';
+$_COS_LANG_MODULE['video_form_file'] = 'Välj video';
+$_COS_LANG_MODULE['video_delete_caption'] = 'Radera inspelning';
+$_COS_LANG_MODULE['video_edit_caption'] = 'Redigera videoklipp';
+$_COS_LANG_MODULE['video_add_caption'] = 'Lägg till ny video';
+$_COS_LANG_MODULE['video_no_file_specified'] = 'Ingen video vald';
+$_COS_LANG_MODULE['video_file_too_big'] = 'Filen är för stor';
+$_COS_LANG_MODULE['video_attached'] = 'videor';
+$_COS_LANG_MODULE['video_download'] = 'Ladda ner';
+$_COS_LANG_MODULE['video_add_new'] = 'Lägg till ny';
+$_COS_LANG_MODULE['video_file_added'] = 'Arkiv tillagd';
+$_COS_LANG_MODULE['video_file_deleted'] = 'Filen raderas';
+$_COS_LANG_MODULE['video_file_edited'] = 'Fil riktad';
+$_COS_LANG_MODULE['file_delete_label'] = 'Bekräfta borttagningen video';
+$_COS_LANG_MODULE['file_edit_legend'] = 'Redigera Arkiv';
+$_COS_LANG_MODULE['file_add_legend'] = 'Lägg File';
+$_COS_LANG_MODULE['file_abstract_label'] = 'Abstrakt';
+$_COS_LANG_MODULE['file_file_label'] = 'Välj en video';
+$_COS_LANG_MODULE['video_submit'] = 'Skicka';
+$_COS_LANG_MODULE['video_could_not_transform_to_flv'] = 'Det gick inte att komprimera video till. FLV-format';
