@@ -470,10 +470,9 @@ function flowplayer_include () {
     static $loaded = null;
     
     if (!$loaded) {
-        template::init('flowplayer');
-        //template::setJs("/templates/flowplayer/flowplayer-3.2.8.min.js", null, array('head' => true)); 
-        template::setJs("http://releases.flowplayer.org/5.4.2/flowplayer.min.js");
-        template::setCss('http://releases.flowplayer.org/5.4.2/skin/minimalist.css');
+        template::init('flowplayer'); 
+        template::setJs("http://releases.flowplayer.org/5.4.4/flowplayer.min.js");
+        template::setCss('http://releases.flowplayer.org/5.4.4/skin/minimalist.css');
         $loaded = true;
     }
 }
