@@ -2,14 +2,15 @@
 
 A video sub module for CosCMS which can be attached to other modules
 with the moduleloader::submodule methods. It uses the flowplayer and 
-uses ffmpeg for decoding and compressing into flv (flash player) format
+uses libav-tools and ffmpeg for decoding and compressing into flv (flash player) format
 
-### ffmpeg
+### libav-tools / ffmpeg
 
 ffmpeg is therefor required
 
     aptitude install ffmpeg
     aptitude install ffmpeg2theora
+    aptitude install libav-tools
  
 ### Flowplayer
 
