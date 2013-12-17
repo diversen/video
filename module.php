@@ -271,11 +271,25 @@ EOF;
      * @return string   content to be displayed
      */
     public static function subModuleAdminOption ($options){
-        $str = "";
         $url = moduleloader::buildReferenceURL('/video/add', $options);
-        $add_str= lang::translate('video_add');
-        $str.= html::createLink($url, $add_str);
+        $text = lang::translate('video_add');
+        $str = html::createLink($url, $text);
         return $str;
+    }
+    
+    /**
+     * get admin options as ary ('text', 'url', 'link') when operating as a sub module
+     * @param array $options
+     * @return array $ary  
+     */
+    public static function subModuleAdminOptionAry ($options){
+        $ary = array ();
+        $url = moduleloader::buildReferenceURL('/video/add', $options);
+        $text = lang::translate('video_add');
+        $ary['link'] = html::createLink($url, $text);
+        $ary['url'] = $url;
+        $ary['text'] = $text;
+        return $ary;
     }
     
     /**
