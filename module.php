@@ -9,7 +9,7 @@
 /**
  * @ignore
  */
-include_once "coslib/upload.php";
+use diversen\upload;
 
 /**
  * class content video is used for keeping track of file changes
