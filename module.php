@@ -220,7 +220,8 @@ EOF;
     function transformVideo ($full_filename, $full_filename_flv) { 
         set_time_limit(0);
         
-        $command = "avconv -i \"$full_filename\" -c copy \"$full_filename_flv\";";
+        //$command = "avconv -i \"$full_filename\" -c copy \"$full_filename_flv\";";
+        $command = "avconv -i \"$full_filename\" -c:v libx264 -c:a copy   \"$full_filename_flv\";";
         //$ffmpeg_command = "ffmpeg -i \"$full_filename\" -ar 44100 -ab 96 -f flv \"$full_filename_flv\";";
         $output = array();
         exec($command, $output, $ret);
@@ -485,8 +486,8 @@ function flowplayer_include () {
     
     if (!$loaded) {
         template::init('flowplayer'); 
-        template::setJs("http://releases.flowplayer.org/5.4.4/flowplayer.min.js");
-        template::setCss('http://releases.flowplayer.org/5.4.4/skin/minimalist.css');
+        template::setJs("http://releases.flowplayer.org/5.5.2/flowplayer.min.js");
+        template::setCss('http://releases.flowplayer.org/5.5.2/skin/minimalist.css');
         $loaded = true;
     }
 }
