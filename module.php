@@ -29,7 +29,7 @@ class video {
      * constructor sets init vars
      */
     function __construct($options = null){
-        $uri = URI::getInstance();
+        $uri = uri::getInstance();
         self::$options = $options;
         
         if (!isset($options['maxsize'])) {
