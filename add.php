@@ -10,7 +10,7 @@ if (!moduleloader::includeRefrenceModule()){
     return;
 }
 
-$bytes = config::getModuleIni('video_max_size');
+$bytes = conf::getModuleIni('video_max_size');
 //echo transform_bytes($bytes);
 
 // we now have a refrence module and a parent id wo work from.

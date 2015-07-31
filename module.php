@@ -33,7 +33,7 @@ class video {
         self::$options = $options;
         
         if (!isset($options['maxsize'])) {
-            $maxsize = config::getModuleIni('video_max_size');
+            $maxsize = conf::getModuleIni('video_max_size');
             if ($maxsize) {
                 self::$options['maxsize'] = $maxsize;
             }
@@ -80,7 +80,7 @@ class video {
         html::label('abstract', lang::translate('file_abstract_label'));
         html::textareaSmall('abstract');
         
-        $bytes = config::getModuleIni('video_max_size');
+        $bytes = conf::getModuleIni('video_max_size');
         html::fileWithLabel('file', $bytes);
 
         html::submit('submit', $submit);
@@ -148,7 +148,7 @@ EOF;
     function uploadVideo () {
         
         $options = array ();
-        $options['maxsize'] = config::getModuleIni('video_max_size');
+        $options['maxsize'] = conf::getModuleIni('video_max_size');
         
         upload::setOptions($options);
         $res = upload::checkUploadNative('file');
@@ -187,7 +187,7 @@ EOF;
         }
         
         $web_dir = "/video/" . self::$options['reference'] . "/" . self::$options['parent_id'];        
-        $web_dir = config::getWebFilesPath($web_dir);
+        $web_dir = conf::getWebFilesPath($web_dir);
         $full_path = _COS_HTDOCS . $web_dir;
         if (!file_exists($full_path)) {
             mkdir($full_path, 0777, true);
@@ -309,7 +309,7 @@ EOF;
             
             $link_options = array ('title' => $val['abstract']); 
             
-            $path = config::getWebFilesPath();
+            $path = conf::getWebFilesPath();
             $str.= html::createLink(
                        "$val[web_path_mp4]", 
                        $title, 
