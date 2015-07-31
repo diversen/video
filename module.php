@@ -25,13 +25,97 @@ class video {
     public static $options = array();
     public static $fileTable = 'video';
 
+    public function addAction() {
+        if (!session::checkAccessControl('video_allow_edit')) {
+            return;
+        }
+
+        moduleloader::$referenceOptions = array('edit_link' => 'true');
+        if (!moduleloader::includeRefrenceModule()) {
+            moduleloader::$status['404'] = true;
+            return;
+        }
+
+        $bytes = conf::getModuleIni('video_max_size');
+//echo transform_bytes($bytes);
+// we now have a refrence module and a parent id wo work from.
+        $link = moduleloader::$referenceLink;
+
+        $headline = lang::translate('video_add_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        html::headline($headline);
+
+        template::setTitle(lang::translate('video_add_file'));
+        $options = moduleloader::getReferenceInfo();
+
+// set parent modules menu
+        layout::setMenuFromClassPath($options['reference']);
+
+        $video = new video($options);
+        $video->viewFileFormInsert();
+
+        $options['admin'] = true;
+        $rows = $video->getAllvideoInfo($options);
+        echo $video->displayAllVideo($rows, $options);
+//print_r($rows);
+    }
+
+    public function deleteAction() {
+
+        if (!session::checkAccessControl('video_allow_edit')) {
+            return;
+        }
+
+        moduleloader::$referenceOptions = array('edit_link' => 'true');
+        if (!moduleloader::includeRefrenceModule()) {
+            moduleloader::$status['404'] = true;
+            return;
+        }
+
+        $link = moduleloader::$referenceLink;
+        $headline = lang::translate('video_delete_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        html::headline($headline);
+
+        template::setTitle(lang::translate('video_add_file'));
+
+        $options = moduleloader::getReferenceInfo();
+        video::setFileId($frag = 3);
+        $video = new video($options);
+        $video->viewFileFormDelete();
+    }
+
+    public function editAction() {
+
+        if (!session::checkAccessControl('video_allow_edit')) {
+            return;
+        }
+
+        if (!moduleloader::includeRefrenceModule()) {
+            moduleloader::$status['404'] = true;
+            return;
+        }
+
+        moduleloader::$referenceOptions = array('edit_link' => 'true');
+
+        $link = moduleloader::$referenceLink;
+        $headline = lang::translate('video_edit_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        html::headline($headline);
+
+        template::setTitle(lang::translate('video_edit_file'));
+
+        $options = moduleloader::getReferenceInfo();
+
+        video::setFileId($frag = 3);
+        $video = new video($options);
+        $video->viewFileFormUpdate();
+    }
+
     /**
      * constructor sets init vars
      */
-    function __construct($options = null){
+    function __construct($options = null) {
         $uri = uri::getInstance();
         self::$options = $options;
-        
+
         if (!isset($options['maxsize'])) {
             $maxsize = conf::getModuleIni('video_max_size');
             if ($maxsize) {
@@ -40,20 +124,20 @@ class video {
         }
     }
 
-    public static function setFileId ($frag){
+    public static function setFileId($frag) {
         self::$fileId = uri::$fragments[$frag];
     }
 
-   /**
-    * method for creating a form for insert, update and deleting entries
-    * in module_system module
-    *
-    *
-    * @param string    method (update, delete or insert)
-    * @param int       id (if delete or update)
-    */
-    public function viewFileForm($method, $id = null, $values = array(), $caption = null){
-     
+    /**
+     * method for creating a form for insert, update and deleting entries
+     * in module_system module
+     *
+     *
+     * @param string    method (update, delete or insert)
+     * @param int       id (if delete or update)
+     */
+    public function viewFileForm($method, $id = null, $values = array(), $caption = null) {
+
         $values = html::specialEncode($values);
         html::formStart('file_upload_form');
         if ($method == 'delete' && isset($id)) {
@@ -64,22 +148,22 @@ class video {
             echo html::getStr();
             return;
         }
-        
+
         $legend = '';
         if (isset($id)) {
             $values = self::getSingleFileInfo($id);
-            html::init($values, 'submit'); 
+            html::init($values, 'submit');
             $legend = lang::translate('file_edit_legend');
             $submit = lang::system('system_submit_update');
         } else {
             $legend = lang::translate('file_add_legend');
             $submit = lang::system('system_submit_add');
         }
-        
+
         html::legend($legend);
         html::label('abstract', lang::translate('file_abstract_label'));
         html::textareaSmall('abstract');
-        
+
         $bytes = conf::getModuleIni('video_max_size');
         html::fileWithLabel('file', $bytes);
 
@@ -88,23 +172,23 @@ class video {
         echo html::getStr();
         return;
     }
-    
+
     /**
      * method for inserting a module into the database
      * (access control is cheched in controller file)
      *
      * @return boolean true on success or false on failure
      */
-    public function insertFile () {
-        
+    public function insertFile() {
+
         $values = db::prepareToPost();
-        
+
         $db = new db();
         $res = $this->uploadVideo();
         if ($res) {
 
             $db->begin();
-           
+
             $values['parent_id'] = self::$options['parent_id'];
             $values['reference'] = self::$options['reference'];
             $values['title'] = $_FILES['file']['name'];
@@ -113,113 +197,114 @@ class video {
             $values['web_path'] = self::$options['flv_web_path'];
             $values['full_path_mp4'] = self::$options['mp4_file_path'];
             $values['web_path_mp4'] = self::$options['mp4_web_path'];
-                $res = $db->insert(self::$fileTable, $values);
-                if ($res) {
-                    $db->commit();
-                } else {
-                    $db->rollback(); 
-                }
+            $res = $db->insert(self::$fileTable, $values);
+            if ($res) {
+                $db->commit();
+            } else {
+                $db->rollback();
+            }
+        }
 
-        } 
-        
         return $res;
     }
     
-    public static function subModuleInlineContent($options){
+    public static  function includePlayer() {
+        if (!conf::getModuleIni('video_player')) {
+            conf::setModuleIni('video_player', 'videojs');
+        }
+        
+        include_once conf::getModuleIni('video_player') . "/driver.php";
+        
+    }
 
-        flowplayer_include();
+    public static function subModuleInlineContent($options) {
+
+        self::includePlayer();
+        $str = video_player_include();
         $info = video::getAllVideoInfo($options);
 
-        $str = '';
-        $str.= <<<EOF
-   <script>
-    flowplayer.conf={
-        engine:'flash'
-    };
-</script>
-EOF;
-        foreach ($info as $video) {            
-            $str.= flowplayer_get_html($video);
+
+        foreach ($info as $video) {
+            $str.= video_player_get_html($video);
         }
         return $str;
     }
-    
-    
-    function uploadVideo () {
-        
-        $options = array ();
+
+    function uploadVideo() {
+
+        $options = array();
         $options['maxsize'] = conf::getModuleIni('video_max_size');
-        
+
         upload::setOptions($options);
         $res = upload::checkUploadNative('file');
         if (!$res) {
             self::$errors = upload::$errors;
             return false;
         }
-        
+
         $res = upload::checkMaxSize('file');
         if (!$res) {
             self::$errors = upload::$errors;
             return false;
         }
-        
+
         // transform to flv
         $tmp_flv = $flv_file = null;
         if (isset($_FILES['file'])) {
-            
+
             $flv_file = file::getFilename($_FILES['file']['name']) . ".flv";
             $tmp_flv = "/tmp/" . $flv_file;
             $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_flv);
-            
+
             if (!$res) {
                 self::$errors[] = lang::translate('video_could_not_transform_to_flv');
                 return false;
-            } 
-            
+            }
+
             $mp4_file = file::getFilename($_FILES['file']['name']) . ".mp4";
             $tmp_mp4 = "/tmp/" . $mp4_file;
             $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_mp4);
-            
+
             if (!$res) {
                 self::$errors[] = lang::translate('video_could_not_transform_to_flv');
                 return false;
-            } 
+            }
         }
-        
-        $web_dir = "/video/" . self::$options['reference'] . "/" . self::$options['parent_id'];        
+
+        $web_dir = "/video/" . self::$options['reference'] . "/" . self::$options['parent_id'];
         $web_dir = conf::getWebFilesPath($web_dir);
         $full_path = conf::pathHtdocs() . $web_dir;
         if (!file_exists($full_path)) {
             mkdir($full_path, 0777, true);
         }
-        
+
         // copy flv
         $flv_web_path = $web_dir . "/" . $flv_file;
         $flv_full_path = $full_path . "/" . $flv_file;
-        
+
         $copied = copy($tmp_flv, $flv_full_path);
         unlink($tmp_flv);
-        
+
         // copy mp4
         $mp4_web_path = $web_dir . "/" . $mp4_file;
         $mp4_full_path = $full_path . "/" . $mp4_file;
-        
+
         $copied = copy($tmp_mp4, $mp4_full_path);
         unlink($tmp_mp4);
-        
+
 
         self::$options['flv_file_path'] = $flv_full_path;
         self::$options['flv_web_path'] = $flv_web_path;
-        
+
         self::$options['mp4_file_path'] = $mp4_full_path;
         self::$options['mp4_web_path'] = $mp4_web_path;
 
         return $copied;
     }
-    
-    function transformVideo ($full_filename, $full_filename_flv) { 
+
+    function transformVideo($full_filename, $full_filename_flv) {
         set_time_limit(0);
-        
+
         //$command = "avconv -i \"$full_filename\" -c copy \"$full_filename_flv\";";
         $command = "avconv -i \"$full_filename\" -c:v libx264 -c:a copy   \"$full_filename_flv\";";
         //$ffmpeg_command = "ffmpeg -i \"$full_filename\" -ar 44100 -ab 96 -f flv \"$full_filename_flv\";";
@@ -228,20 +313,18 @@ EOF;
         if ($ret) {
             return false;
         }
-        
+
         return true;
     }
-    
 
     /**
      * method for validating a post before insert
      */
-    public function validateInsert($mode = false){
-        if (empty($_FILES['file']['name'])){
+    public function validateInsert($mode = false) {
+        if (empty($_FILES['file']['name'])) {
             self::$errors[] = lang::translate('video_no_file_specified');
-        } 
+        }
     }
-
 
     /**
      * method for delting a file
@@ -250,9 +333,9 @@ EOF;
      * @return  boolean true on success and false on failure
      *
      */
-    public function deleteFile($id){
+    public function deleteFile($id) {
         $row = $this->getSingleFileInfo($id);
-        
+
         $file = conf::pathHtdocs() . "" . $row['web_path'];
         if (file_exists($file)) {
             unlink($row['full_path']); //filename)
@@ -262,29 +345,27 @@ EOF;
         $res = $db->delete(self::$fileTable, 'id', $id);
         return $res;
     }
-    
 
-    
-     /**
+    /**
      * method for adding pre content when video is used as a sub module. 
      * e.g. in content or blog. 
      * @param type $options
      * @return string   content to be displayed
      */
-    public static function subModuleAdminOption ($options){
+    public static function subModuleAdminOption($options) {
         $url = moduleloader::buildReferenceURL('/video/add', $options);
         $text = lang::translate('video_add');
         $str = html::createLink($url, $text);
         return $str;
     }
-    
+
     /**
      * get admin options as ary ('text', 'url', 'link') when operating as a sub module
      * @param array $options
      * @return array $ary  
      */
-    public static function subModuleAdminOptionAry ($options){
-        $ary = array ();
+    public static function subModuleAdminOptionAry($options) {
+        $ary = array();
         $url = moduleloader::buildReferenceURL('/video/add', $options);
         $text = lang::translate('video_add');
         $ary['link'] = html::createLink($url, $text);
@@ -292,35 +373,33 @@ EOF;
         $ary['text'] = $text;
         return $ary;
     }
-    
+
     /**
      * method for displaying all video. 
      * @param array $rows
      * @param array $options
      * @return string 
      */
-    public static function displayAllVideo($rows, $options){
+    public static function displayAllVideo($rows, $options) {
         $str = '';
-       
-        foreach ($rows as $val){
+
+        foreach ($rows as $val) {
             $title = lang::translate('video_download');
             $title.= MENU_SUB_SEPARATOR_SEC;
             $title.= $val['title'];
-            
-            $link_options = array ('title' => $val['abstract']); 
-            
+
+            $link_options = array('title' => $val['abstract']);
+
             $path = conf::getWebFilesPath();
             $str.= html::createLink(
-                       "$val[web_path_mp4]", 
-                       $title, 
-                       $link_options
-                   );
-            
+                            "$val[web_path_mp4]", $title, $link_options
+            );
+
             // as a sub module the sub module can not know anything about the
             // id of individual video. That's why we will add id. 
             //print_r($options);
             $options['id'] = $val['id'];
-            if (isset($options['admin'])){
+            if (isset($options['admin'])) {
 
                 $url = moduleloader::buildReferenceURL('/video/edit', $options);
                 //$str.= html::createLink($url, lang::translate('video_edit'));
@@ -338,9 +417,9 @@ EOF;
      *
      * @return array assoc rows of modules belonging to user
      */
-    public static function getAllVideoInfo($options){
+    public static function getAllVideoInfo($options) {
         $db = new db();
-        $search = array (
+        $search = array(
             'parent_id' => $options['parent_id'],
             'reference' => $options['reference']
         );
@@ -348,31 +427,31 @@ EOF;
         $rows = $db->selectAll(self::$fileTable, null, $search, null, null, 'created', false);
         return $rows;
     }
-    
+
     /**
      * method for getting a single video info. 
      * @param int $id
      * @return array $row with info 
      */
-    public static function getSingleFileInfo($id = null){
-        if (!$id) $id = self::$fileId;
+    public static function getSingleFileInfo($id = null) {
+        if (!$id)
+            $id = self::$fileId;
         $db = new db();
-        $search = array (
+        $search = array(
             'id' => $id
         );
 
-        $fields = array ('id', 'parent_id', 'full_path', 'web_path', 'title', 'abstract', 'published', 'created', 'reference');
+        $fields = array('id', 'parent_id', 'full_path', 'web_path', 'title', 'abstract', 'published', 'created', 'reference');
         $row = $db->selectOne(self::$fileTable, null, $search, $fields, null, 'created', false);
         return $row;
     }
-
 
     /**
      * method for fetching one file
      *
      * @return array row with selected video info
      */
-    public static function getFile(){
+    public static function getFile() {
         $db = new db();
         $row = $db->selectOne(self::$fileTable, 'id', self::$fileId);
         return $row;
@@ -384,18 +463,18 @@ EOF;
      *
      * @return boolean  true on success or false on failure
      */
-    public function updateFile () {
-        
+    public function updateFile() {
+
         $bind = array();
         $values['abstract'] = html::specialDecode($_POST['abstract']);
 
         $db = new db();
-        if (!empty($_FILES['file']['name']) ){
-            
-            $options = array ();
+        if (!empty($_FILES['file']['name'])) {
+
+            $options = array();
             $options['filename'] = 'file';
             $options['maxsize'] = self::$options['maxsize'];
-            
+
             $fp = uploadBlob::getFP('file', $options);
             if (!$fp) {
                 self::$errors = uploadBlob::$errors;
@@ -410,18 +489,18 @@ EOF;
         $res = $db->update(self::$fileTable, $values, self::$fileId, $bind);
         return $res;
     }
-    
+
     /**
      * method to be used in a insert controller
      */
-    public function viewFileFormInsert(){
-        
+    public function viewFileFormInsert() {
+
         $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
-        if (isset($_POST['submit'])){
+        if (isset($_POST['submit'])) {
             $this->validateInsert();
-            if (!isset(self::$errors)){
+            if (!isset(self::$errors)) {
                 $res = $this->insertFile();
-                if ($res){
+                if ($res) {
                     session::setActionMessage(lang::translate('video_file_added'));
                     http::locationHeader($redirect);
                 } else {
@@ -437,12 +516,12 @@ EOF;
     /**
      * method to be used in a delete controller
      */
-    public function viewFileFormDelete(){
+    public function viewFileFormDelete() {
         $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
-        if (isset($_POST['submit'])){
-            if (!isset(self::$errors)){
+        if (isset($_POST['submit'])) {
+            if (!isset(self::$errors)) {
                 $res = $this->deleteFile(self::$fileId);
-                if ($res){
+                if ($res) {
                     session::setActionMessage(lang::translate('video_file_deleted'));
                     $header = "Location: " . $redirect;
                     header($header);
@@ -458,12 +537,12 @@ EOF;
     /**
      * merhod to be used in an update controller 
      */
-    public function viewFileFormUpdate(){
+    public function viewFileFormUpdate() {
         $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
-        if (isset($_POST['submit'])){
-            if (!isset(self::$errors)){
+        if (isset($_POST['submit'])) {
+            if (!isset(self::$errors)) {
                 $res = $this->updateFile();
-                if ($res){
+                if ($res) {
                     session::setActionMessage(lang::translate('video_file_edited'));
                     $header = "Location: " . $redirect;
                     header($header);
@@ -477,32 +556,5 @@ EOF;
         }
         $this->viewFileForm('update', self::$fileId);
     }
-}
 
-
-function flowplayer_include () {
-    
-    static $loaded = null;
-    
-    if (!$loaded) {
-        template::init('flowplayer'); 
-        template::setJs("http://releases.flowplayer.org/5.5.2/flowplayer.min.js");
-        template::setCss('http://releases.flowplayer.org/5.5.2/skin/minimalist.css');
-        $loaded = true;
-    }
-}
-
-function flowplayer_get_html ($row) {
-
-    $str = <<<EOF
-   
-   
-<div class="flowplayer">
-   <video>
-    <source type="video/mp4" src="$row[web_path_mp4]">  
-    <source type="video/flv" src="$row[web_path]">        
-   </video>
-</div>
-EOF;
-    return $str;
 }
