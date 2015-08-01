@@ -21,7 +21,7 @@ function video_player_get_html ($row) {
         $str = <<<EOF
    
 <video id="really-cool-video" class="video-js vjs-default-skin" controls
- preload="auto" width="640" height="264" 
+ preload="auto"  width="auto" height="auto" 
  data-setup='{}'>
   <source type="video/mp4" src="$row[web_path_mp4]">  
     <source type="video/flv" src="$row[web_path]">  
