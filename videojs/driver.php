@@ -5,12 +5,24 @@ use diversen\template\assets;
 function video_player_include () {
     
     static $loaded = null;
-
+        $css = <<<EOF
+<style>
+.video-js {padding-top: 56.25%}
+.vjs-fullscreen {padding-top: 0px}
+</style>
+EOF;
     if (!$loaded) {
+             
+        
         assets::setJs("http://vjs.zencdn.net/4.12/video.js");
         assets::setCss('http://vjs.zencdn.net/4.12/video-js.css');
         $loaded = true;
+        return $css;
+        
     }
+    
+    
+    
 }
 
 
@@ -19,7 +31,11 @@ function video_player_get_html ($row) {
     
     // poster="really-cool-video-poster.jpg"
         $str = <<<EOF
-   
+   <div class="wrapper">
+ <div class="videocontent">
+	
+
+
 <video id="really-cool-video" class="video-js vjs-default-skin" controls
  preload="auto"  width="auto" height="auto" 
  data-setup='{}'>
@@ -30,6 +46,8 @@ function video_player_get_html ($row) {
     that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
   </p>
 </video>
+                 </div>
+</div>
 EOF;
         return $str;
 }
