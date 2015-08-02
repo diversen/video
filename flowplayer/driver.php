@@ -1,7 +1,7 @@
 <?php
 
-use diversen\template\assets;
 use diversen\template;
+use diversen\template\assets;
 
 function video_player_include() {
 

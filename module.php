@@ -9,7 +9,20 @@
 /**
  * @ignore
  */
+
+use diversen\conf;
+use diversen\db;
+use diversen\file;
+use diversen\html;
+use diversen\http;
+use diversen\lang;
+use diversen\layout;
+use diversen\moduleloader;
+use diversen\session;
+use diversen\template;
 use diversen\upload;
+use diversen\upload\blob;
+use diversen\uri;
 
 /**
  * class content video is used for keeping track of file changes
@@ -475,9 +488,9 @@ class video {
             $options['filename'] = 'file';
             $options['maxsize'] = self::$options['maxsize'];
 
-            $fp = uploadBlob::getFP('file', $options);
+            $fp = blob::getFP('file', $options);
             if (!$fp) {
-                self::$errors = uploadBlob::$errors;
+                self::$errors = blob::$errors;
                 return false;
             }
             $values['file'] = $fp;
