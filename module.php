@@ -167,10 +167,10 @@ class video {
             $values = self::getSingleFileInfo($id);
             html::init($values, 'submit');
             $legend = lang::translate('file_edit_legend');
-            $submit = lang::system('system_submit_update');
+            $submit = lang::translate('system_submit_update');
         } else {
             $legend = lang::translate('file_add_legend');
-            $submit = lang::system('system_submit_add');
+            $submit = lang::translate('system_submit_add');
         }
 
         html::legend($legend);
