@@ -54,10 +54,10 @@ class video {
 // we now have a refrence module and a parent id wo work from.
         $link = moduleloader::$referenceLink;
 
-        $headline = lang::translate('video_add_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        $headline = lang::translate('Add video') . MENU_SUB_SEPARATOR_SEC . $link;
         html::headline($headline);
 
-        template::setTitle(lang::translate('video_add_file'));
+        template::setTitle(lang::translate('Add video'));
         $options = moduleloader::getReferenceInfo();
 
 // set parent modules menu
@@ -85,10 +85,10 @@ class video {
         }
 
         $link = moduleloader::$referenceLink;
-        $headline = lang::translate('video_delete_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        $headline = lang::translate('Delete video') . MENU_SUB_SEPARATOR_SEC . $link;
         html::headline($headline);
 
-        template::setTitle(lang::translate('video_add_file'));
+        template::setTitle(lang::translate('Add video'));
 
         $options = moduleloader::getReferenceInfo();
         video::setFileId($frag = 3);
@@ -110,10 +110,10 @@ class video {
         moduleloader::$referenceOptions = array('edit_link' => 'true');
 
         $link = moduleloader::$referenceLink;
-        $headline = lang::translate('video_edit_file') . MENU_SUB_SEPARATOR_SEC . $link;
+        $headline = lang::translate('Edit video') . MENU_SUB_SEPARATOR_SEC . $link;
         html::headline($headline);
 
-        template::setTitle(lang::translate('video_edit_file'));
+        template::setTitle(lang::translate('Edit video'));
 
         $options = moduleloader::getReferenceInfo();
 
@@ -154,7 +154,7 @@ class video {
         $values = html::specialEncode($values);
         html::formStart('file_upload_form');
         if ($method == 'delete' && isset($id)) {
-            $legend = lang::translate('file_delete_label');
+            $legend = lang::translate('Delete video');
             html::legend($legend);
             html::submit('submit', lang::translate('Delete'));
             html::formEnd();
@@ -166,15 +166,15 @@ class video {
         if (isset($id)) {
             $values = self::getSingleFileInfo($id);
             html::init($values, 'submit');
-            $legend = lang::translate('file_edit_legend');
-            $submit = lang::translate('system_submit_update');
+            $legend = lang::translate('Edit video');
+            $submit = lang::translate('Update video');
         } else {
-            $legend = lang::translate('file_add_legend');
-            $submit = lang::translate('system_submit_add');
+            $legend = lang::translate('Add video');
+            $submit = lang::translate('Add video');
         }
 
         html::legend($legend);
-        html::label('abstract', lang::translate('file_abstract_label'));
+        html::label('abstract', lang::translate('Abstract'));
         html::textareaSmall('abstract');
 
         $bytes = conf::getModuleIni('video_max_size');
@@ -270,7 +270,7 @@ class video {
             $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_flv);
 
             if (!$res) {
-                self::$errors[] = lang::translate('video_could_not_transform_to_flv');
+                self::$errors[] = lang::translate('Could not transform to flv');
                 return false;
             }
 
@@ -279,7 +279,7 @@ class video {
             $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_mp4);
 
             if (!$res) {
-                self::$errors[] = lang::translate('video_could_not_transform_to_flv');
+                self::$errors[] = lang::translate('Could not transform to flv');
                 return false;
             }
         }
@@ -367,7 +367,7 @@ class video {
      */
     public static function subModuleAdminOption($options) {
         $url = moduleloader::buildReferenceURL('/video/add', $options);
-        $text = lang::translate('video_add');
+        $text = lang::translate('Add video');
         $str = html::createLink($url, $text);
         return $str;
     }
@@ -380,7 +380,7 @@ class video {
     public static function subModuleAdminOptionAry($options) {
         $ary = array();
         $url = moduleloader::buildReferenceURL('/video/add', $options);
-        $text = lang::translate('video_add');
+        $text = lang::translate('Add video');
         $ary['link'] = html::createLink($url, $text);
         $ary['url'] = $url;
         $ary['text'] = $text;
@@ -397,7 +397,7 @@ class video {
         $str = '';
 
         foreach ($rows as $val) {
-            $title = lang::translate('video_download');
+            $title = lang::translate('Download video');
             $title.= MENU_SUB_SEPARATOR_SEC;
             $title.= $val['title'];
 
@@ -415,10 +415,10 @@ class video {
             if (isset($options['admin'])) {
 
                 $url = moduleloader::buildReferenceURL('/video/edit', $options);
-                //$str.= html::createLink($url, lang::translate('video_edit'));
+
                 $str.= MENU_SUB_SEPARATOR;
                 $url = moduleloader::buildReferenceURL('/video/delete', $options);
-                $str.= html::createLink($url, lang::translate('video_delete'));
+                $str.= html::createLink($url, lang::translate('Delete video'));
             }
             $str.= "<br />\n";
         }
@@ -514,7 +514,7 @@ class video {
             if (!isset(self::$errors)) {
                 $res = $this->insertFile();
                 if ($res) {
-                    session::setActionMessage(lang::translate('video_file_added'));
+                    session::setActionMessage(lang::translate('Video was added'));
                     http::locationHeader($redirect);
                 } else {
                     html::errors(self::$errors);
@@ -535,7 +535,7 @@ class video {
             if (!isset(self::$errors)) {
                 $res = $this->deleteFile(self::$fileId);
                 if ($res) {
-                    session::setActionMessage(lang::translate('video_file_deleted'));
+                    session::setActionMessage(lang::translate('Video was deleted'));
                     $header = "Location: " . $redirect;
                     header($header);
                     exit;
@@ -556,7 +556,7 @@ class video {
             if (!isset(self::$errors)) {
                 $res = $this->updateFile();
                 if ($res) {
-                    session::setActionMessage(lang::translate('video_file_edited'));
+                    session::setActionMessage(lang::translate('Video was edited'));
                     $header = "Location: " . $redirect;
                     header($header);
                     exit;
