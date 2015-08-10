@@ -335,7 +335,7 @@ class video {
      */
     public function validateInsert($mode = false) {
         if (empty($_FILES['file']['name'])) {
-            self::$errors[] = lang::translate('video_no_file_specified');
+            self::$errors[] = lang::translate('No file was specified');
         }
     }
 
