@@ -5,8 +5,9 @@ $LANG = array();
 // Translation of file modules/video/module.php
 
 $LANG['Add video'] = 'Add video';
-$LANG['Delete video'] = 'Delete video';
 $LANG['Edit video'] = 'Edit video';
+$LANG['Delete video'] = 'Delete video';
+$LANG['Go back'] = 'Go back';
 $LANG['Delete'] = 'Delete';
 $LANG['Update video'] = 'Update video';
 $LANG['Abstract'] = 'Abstract';
