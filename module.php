@@ -1,5 +1,6 @@
 <?php
 
+namespace modules\video;
 /**
  * model file for doing file uploads
  *
@@ -28,7 +29,7 @@ use diversen\uri;
  * class content video is used for keeping track of file changes
  * in db. Uses object fileUpload
  */
-class video {
+class module {
 
     public static $errors = null;
     public static $status = null;
@@ -38,37 +39,71 @@ class video {
     public static $options = array();
     public static $fileTable = 'video';
 
+    
+    /**
+     * get options from QUERY
+     * @return array $options
+     */
+    public static function getOptions() {
+        $options = array
+            ('parent_id' => $_GET['parent_id'],
+            'return_url' => $_GET['return_url'],
+            'reference' => $_GET['reference'],
+            'query' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY)
+            );
+        return $options;
+    }
+    
+        /**
+     * set a headline and page title based on action
+     * @param string $action 'add', 'edit', 'delete'
+     */
+    public static function setHeadlineTitle ($action = '') {
+
+        $options = self::getOptions();
+        if ($action == 'add') {
+            $title = lang::translate('Add video');
+        }
+        
+        if ($action == 'edit') {
+            $title = lang::translate('Edit video');
+        }
+        
+        if ($action == 'delete') {
+            $title = lang::translate('Delete video');
+        }
+            
+        // set headline and title
+        $headline = $title . MENU_SUB_SEPARATOR_SEC;
+        $headline.= html::createLink($options['return_url'], lang::translate('Go back'));
+
+        echo html::getHeadline($headline);
+        template::setTitle(lang::translate($title));
+    }
+    
     public function addAction() {
         if (!session::checkAccessControl('video_allow_edit')) {
             return;
         }
 
-        moduleloader::$referenceOptions = array('edit_link' => 'true');
-        if (!moduleloader::includeRefrenceModule()) {
-            moduleloader::$status['404'] = true;
-            return;
-        }
-
+        // moduleloader::$referenceOptions = array('edit_link' => 'true');
+        // if (!moduleloader::includeRefrenceModule()) {
+        //    moduleloader::$status['404'] = true;
+        //    return;
+        // }
+        $options = self::getOptions();
         $bytes = conf::getModuleIni('video_max_size');
-//echo transform_bytes($bytes);
-// we now have a refrence module and a parent id wo work from.
-        $link = moduleloader::$referenceLink;
-
-        $headline = lang::translate('Add video') . MENU_SUB_SEPARATOR_SEC . $link;
-        html::headline($headline);
-
-        template::setTitle(lang::translate('Add video'));
-        $options = moduleloader::getReferenceInfo();
-
-// set parent modules menu
+        
+        self::setHeadlineTitle('add');
+        
         layout::setMenuFromClassPath($options['reference']);
 
-        $video = new video($options);
-        $video->viewFileFormInsert();
+        //$video = new self($options);
+        $this->viewFileFormInsert();
 
         $options['admin'] = true;
-        $rows = $video->getAllvideoInfo($options);
-        echo $video->displayAllVideo($rows, $options);
+        $rows = $this->getAllvideoInfo($options);
+        echo $this->displayAllVideo($rows, $options);
 //print_r($rows);
     }
 
@@ -78,21 +113,9 @@ class video {
             return;
         }
 
-        moduleloader::$referenceOptions = array('edit_link' => 'true');
-        if (!moduleloader::includeRefrenceModule()) {
-            moduleloader::$status['404'] = true;
-            return;
-        }
-
-        $link = moduleloader::$referenceLink;
-        $headline = lang::translate('Delete video') . MENU_SUB_SEPARATOR_SEC . $link;
-        html::headline($headline);
-
-        template::setTitle(lang::translate('Add video'));
-
-        $options = moduleloader::getReferenceInfo();
-        video::setFileId($frag = 3);
-        $video = new video($options);
+        self::setHeadlineTitle('delete');
+        $options = self::getOptions();
+        $video = new self($options);
         $video->viewFileFormDelete();
     }
 
@@ -102,23 +125,10 @@ class video {
             return;
         }
 
-        if (!moduleloader::includeRefrenceModule()) {
-            moduleloader::$status['404'] = true;
-            return;
-        }
+        self::setHeadlineTitle('edit');
 
-        moduleloader::$referenceOptions = array('edit_link' => 'true');
 
-        $link = moduleloader::$referenceLink;
-        $headline = lang::translate('Edit video') . MENU_SUB_SEPARATOR_SEC . $link;
-        html::headline($headline);
-
-        template::setTitle(lang::translate('Edit video'));
-
-        $options = moduleloader::getReferenceInfo();
-
-        video::setFileId($frag = 3);
-        $video = new video($options);
+        $video = new self($options);
         $video->viewFileFormUpdate();
     }
 
@@ -126,7 +136,7 @@ class video {
      * constructor sets init vars
      */
     function __construct($options = null) {
-        $uri = uri::getInstance();
+        //$uri = uri::getInstance();
         self::$options = $options;
 
         if (!isset($options['maxsize'])) {
@@ -234,7 +244,7 @@ class video {
 
         self::includePlayer();
         $str = video_player_include();
-        $info = video::getAllVideoInfo($options);
+        $info = self::getAllVideoInfo($options);
 
 
         foreach ($info as $video) {
@@ -360,16 +370,19 @@ class video {
     }
 
     /**
-     * method for adding pre content when video is used as a sub module. 
-     * e.g. in content or blog. 
-     * @param type $options
-     * @return string   content to be displayed
+     * get admin when operating as a sub module
+     * @param array $options
+     * @return string  
      */
-    public static function subModuleAdminOption($options) {
-        $url = moduleloader::buildReferenceURL('/video/add', $options);
-        $text = lang::translate('Add video');
-        $str = html::createLink($url, $text);
-        return $str;
+    public static function subModuleAdminOption ($options){        
+        $url = "/video/add?" . http_build_query($options);
+        $extra = null;
+        if (isset($options['options'])) {
+            $extra = $options['options'];
+        }
+        
+        return html::createLink($url, lang::translate('Add video'), $extra); //$url;
+
     }
 
     /**
@@ -414,11 +427,10 @@ class video {
             $options['id'] = $val['id'];
             if (isset($options['admin'])) {
 
-                $url = moduleloader::buildReferenceURL('/video/edit', $options);
-
+                // delete link
+                $delete = "/video/delete/$val[id]?" . $options['query'];
                 $str.= MENU_SUB_SEPARATOR;
-                $url = moduleloader::buildReferenceURL('/video/delete', $options);
-                $str.= html::createLink($url, lang::translate('Delete video'));
+                $str.= html::createLink($delete, lang::translate('Delete'));
             }
             $str.= "<br />\n";
         }
@@ -508,7 +520,6 @@ class video {
      */
     public function viewFileFormInsert() {
 
-        $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
         if (isset($_POST['submit'])) {
             $this->validateInsert();
             if (!isset(self::$errors)) {
@@ -530,7 +541,6 @@ class video {
      * method to be used in a delete controller
      */
     public function viewFileFormDelete() {
-        $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
         if (isset($_POST['submit'])) {
             if (!isset(self::$errors)) {
                 $res = $this->deleteFile(self::$fileId);
@@ -546,18 +556,23 @@ class video {
         }
         $this->viewFileForm('delete', self::$fileId);
     }
+    
+    public static function redirectVideoMain ($options) {
+        $url = "/files/add/?$options[query]";
+        http::locationHeader($url);   
+    }
 
     /**
      * merhod to be used in an update controller 
      */
     public function viewFileFormUpdate() {
-        $redirect = moduleloader::buildReferenceURL('/video/add', self::$options);
+
         if (isset($_POST['submit'])) {
             if (!isset(self::$errors)) {
                 $res = $this->updateFile();
                 if ($res) {
                     session::setActionMessage(lang::translate('Video was edited'));
-                    $header = "Location: " . $redirect;
+                    $header = "Location: " . self::redirectVideoMain(self::$options);
                     header($header);
                     exit;
                 } else {
