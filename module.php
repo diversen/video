@@ -86,13 +86,7 @@ class module {
             return;
         }
 
-        // moduleloader::$referenceOptions = array('edit_link' => 'true');
-        // if (!moduleloader::includeRefrenceModule()) {
-        //    moduleloader::$status['404'] = true;
-        //    return;
-        // }
         $options = self::getOptions();
-        $bytes = conf::getModuleIni('video_max_size');
         
         self::setHeadlineTitle('add');
         
@@ -109,11 +103,13 @@ class module {
 
     public function deleteAction() {
 
+        $options = self::getOptions();
         if (!session::checkAccessControl('video_allow_edit')) {
             return;
         }
 
         self::setHeadlineTitle('delete');
+        layout::setMenuFromClassPath($options['reference']);
         $options = self::getOptions();
         $video = new self($options);
         $video->viewFileFormDelete();
