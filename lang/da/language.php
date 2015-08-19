@@ -3,8 +3,9 @@
 $LANG = array();
 
 $LANG['Add video'] = 'Tilføj videoer';
-$LANG['Delete video'] = 'Slet video';
 $LANG['Edit video'] = 'Redigere video';
+$LANG['Delete video'] = 'Slet video';
+$LANG['Go back'] = 'Gå tilbage';
 $LANG['Delete'] = 'Slet';
 $LANG['Update video'] = 'Opdater video';
 $LANG['Abstract'] = 'Abstrakt';
