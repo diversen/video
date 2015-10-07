@@ -372,7 +372,7 @@ class module {
      */
     public static function subModuleAdminOption ($options){        
         $url = "/video/add?" . http_build_query($options);
-        $extra = null;
+        $extra = array();
         if (isset($options['options'])) {
             $extra = $options['options'];
         }
