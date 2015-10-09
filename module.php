@@ -110,9 +110,8 @@ class module {
 
         self::setHeadlineTitle('delete');
         layout::setMenuFromClassPath($options['reference']);
-        $options = self::getOptions();
-        $video = new self($options);
-        $video->viewFileFormDelete();
+
+        $this->viewFileFormDelete();
     }
 
     public function editAction() {
@@ -122,9 +121,6 @@ class module {
         }
 
         self::setHeadlineTitle('edit');
-
-
-        $video = new self($options);
         $video->viewFileFormUpdate();
     }
 
@@ -132,7 +128,7 @@ class module {
      * constructor sets init vars
      */
     function __construct($options = null) {
-        //$uri = uri::getInstance();
+        self::setFileId();
         self::$options = $options;
 
         if (!isset($options['maxsize'])) {
@@ -143,8 +139,8 @@ class module {
         }
     }
 
-    public static function setFileId($frag) {
-        self::$fileId = uri::$fragments[$frag];
+    public static function setFileId() {
+        self::$fileId = uri::fragment(2);
     }
 
     /**
@@ -158,6 +154,7 @@ class module {
     public function viewFileForm($method, $id = null, $values = array(), $caption = null) {
 
         $values = html::specialEncode($values);
+        
         html::formStart('file_upload_form');
         if ($method == 'delete' && isset($id)) {
             $legend = lang::translate('Delete video');
@@ -251,10 +248,10 @@ class module {
 
     function uploadVideo() {
 
-        $options = array();
+        // upload options
         $options['maxsize'] = conf::getModuleIni('video_max_size');
-
         upload::setOptions($options);
+        
         $res = upload::checkUploadNative('file');
         if (!$res) {
             self::$errors = upload::$errors;
@@ -290,6 +287,7 @@ class module {
             }
         }
 
+        self::$options = self::getOptions();
         $web_dir = "/video/" . self::$options['reference'] . "/" . self::$options['parent_id'];
         $web_dir = conf::getWebFilesPath($web_dir);
         $full_path = conf::pathHtdocs() . $web_dir;
@@ -516,13 +514,15 @@ class module {
      */
     public function viewFileFormInsert() {
 
+        $options = self::getOptions();
         if (isset($_POST['submit'])) {
             $this->validateInsert();
             if (!isset(self::$errors)) {
                 $res = $this->insertFile();
                 if ($res) {
                     session::setActionMessage(lang::translate('Video was added'));
-                    http::locationHeader($redirect);
+                    $url = "/video/add/?$options[query]";
+                    http::locationHeader($url);
                 } else {
                     html::errors(self::$errors);
                 }
@@ -537,13 +537,14 @@ class module {
      * method to be used in a delete controller
      */
     public function viewFileFormDelete() {
+        $options = self::getOptions();
         if (isset($_POST['submit'])) {
             if (!isset(self::$errors)) {
                 $res = $this->deleteFile(self::$fileId);
                 if ($res) {
                     session::setActionMessage(lang::translate('Video was deleted'));
-                    $header = "Location: " . $redirect;
-                    header($header);
+                    $url = "/video/add/?$options[query]";
+                    http::locationHeader($url);
                     exit;
                 }
             } else {
