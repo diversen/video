@@ -233,6 +233,12 @@ class module {
         
     }
 
+    /**
+     * Get videos connected to a entity: 
+     * 
+     * @param type $options
+     * @return type
+     */
     public static function subModuleInlineContent($options) {
 
         self::includePlayer();
