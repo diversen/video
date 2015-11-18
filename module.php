@@ -247,7 +247,9 @@ class module {
 
 
         foreach ($info as $video) {
+            $str.= "<hr />";
             $str.= video_player_get_html($video);
+            $str.= "<hr />";
         }
         return $str;
     }
@@ -381,7 +383,7 @@ class module {
             $extra = $options['options'];
         }
         
-        return html::createLink($url, lang::translate('Add video'), $extra); //$url;
+        return html::createLink($url, lang::translate('Videos'), $extra); //$url;
 
     }
 

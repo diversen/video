@@ -28,14 +28,12 @@ EOF;
 
 
 function video_player_get_html ($row) {
-    
+    // print_r($row); die;
     // poster="really-cool-video-poster.jpg"
         $str = <<<EOF
-   <div class="wrapper">
+<div class="wrapper">
  <div class="videocontent">
 	
-
-
 <video id="really-cool-video" class="video-js vjs-default-skin" controls
  preload="auto"  width="auto" height="auto" 
  data-setup='{}'>
