@@ -11,18 +11,13 @@ function video_player_include () {
 .vjs-fullscreen {padding-top: 0px}
 </style>
 EOF;
-    if (!$loaded) {
-             
-        
+    if (!$loaded) { 
         assets::setJs("http://vjs.zencdn.net/4.12/video.js");
         assets::setCss('http://vjs.zencdn.net/4.12/video-js.css');
+        assets::setStringCss($css, null, array ('head' => true));
         $loaded = true;
         return $css;
-        
-    }
-    
-    
-    
+    }  
 }
 
 

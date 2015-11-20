@@ -11,19 +11,26 @@ namespace modules\video;
  * @ignore
  */
 
+use diversen\bgJob;
 use diversen\conf;
 use diversen\db;
+use diversen\db\admin;
+use diversen\db\q;
 use diversen\file;
 use diversen\html;
 use diversen\http;
 use diversen\lang;
 use diversen\layout;
+use diversen\log;
 use diversen\moduleloader;
 use diversen\session;
 use diversen\template;
 use diversen\upload;
 use diversen\upload\blob;
-use diversen\uri;
+use diversen\uri\manip;
+use diversen\user;
+use PDO;
+
 
 /**
  * class content video is used for keeping track of file changes
@@ -35,6 +42,7 @@ class module {
     public static $status = null;
     public static $parent_id;
     public static $fileId;
+    public static $allow;
     public static $maxsize = 2000000; // 2 mb max size
     public static $options = array();
     public static $fileTable = 'video';
@@ -78,15 +86,55 @@ class module {
         $headline.= html::createLink($options['return_url'], lang::translate('Go back'));
 
         echo html::getHeadline($headline);
-        template::setTitle(lang::translate($title));
+        template::setTitle($title);
     }
     
-    public function addAction() {
-        if (!session::checkAccessControl('video_allow_edit')) {
-            return;
+        /**
+     * check access to module based on options and blog ini settings 
+     * @param array $options
+     * @return void
+     */
+    public static function checkAccess ($options) {
+        
+        // check access
+        if (!session::checkAccessClean(self::$allow)) {
+            return false;
         }
 
+        // if allow is set to user - this module only allow user to edit his images
+        // to references and parent_ids which he owns
+        if (self::$allow == 'user') {
+            
+            $table = moduleloader::moduleReferenceToTable($options['reference']);
+            if (!admin::tableExists($table)) {
+                return false;
+            }
+            if (!user::ownID($table, $options['parent_id'], session::getUserId())) {
+                moduleloader::setStatus(403);
+                return false;
+            }
+        }
+        return true;
+    }
+      
+    /**
+     * Main action. Add a video.
+     * @return boolean
+     */
+    public function addAction() {
+
+        if (!isset($_GET['parent_id'], $_GET['return_url'], $_GET['reference'] )) { 
+            moduleloader::setStatus(403);
+            return false;
+        }
+        
+        // get options from QUERY
         $options = self::getOptions();
+        
+        if (!self::checkAccess($options)) {
+            moduleloader::setStatus(403);
+            return false;
+        }
         
         self::setHeadlineTitle('add');
         
@@ -98,7 +146,7 @@ class module {
         $options['admin'] = true;
         $rows = $this->getAllvideoInfo($options);
         echo $this->displayAllVideo($rows, $options);
-//print_r($rows);
+
     }
 
     public function deleteAction() {
@@ -110,7 +158,6 @@ class module {
 
         self::setHeadlineTitle('delete');
         layout::setMenuFromClassPath($options['reference']);
-
         $this->viewFileFormDelete();
     }
 
@@ -128,19 +175,19 @@ class module {
      * constructor sets init vars
      */
     function __construct($options = null) {
-        self::setFileId();
+
         self::$options = $options;
+        if (!isset($options['allow'])) {
+            self::$allow = conf::getModuleIni('video_allow_edit');
+        }
+        
 
         if (!isset($options['maxsize'])) {
             $maxsize = conf::getModuleIni('video_max_size');
             if ($maxsize) {
                 self::$options['maxsize'] = $maxsize;
             }
-        }
-    }
-
-    public static function setFileId() {
-        self::$fileId = uri::fragment(2);
+        }        
     }
 
     /**
@@ -153,39 +200,48 @@ class module {
      */
     public function viewFileForm($method, $id = null, $values = array(), $caption = null) {
 
+        $f =  new html();
         $values = html::specialEncode($values);
         
-        html::formStart('file_upload_form');
+        $f->formStart('file_upload_form');
         if ($method == 'delete' && isset($id)) {
             $legend = lang::translate('Delete video');
-            html::legend($legend);
-            html::submit('submit', lang::translate('Delete'));
-            html::formEnd();
-            echo html::getStr();
+            $f->legend($legend);
+            $f->submit('submit', lang::translate('Delete'));
+            $f->formEnd();
+            echo $f->getStr();
             return;
         }
 
         $legend = '';
         if (isset($id)) {
             $values = self::getSingleFileInfo($id);
-            html::init($values, 'submit');
+            $f->init($values, 'submit');
             $legend = lang::translate('Edit video');
             $submit = lang::translate('Update video');
+
+            $f->legend($legend);
+            $f->label('abstract', lang::translate('Abstract'));
+            $f->textareaSmall('abstract');
         } else {
+
+            $f->init($_POST, 'submit', true);
             $legend = lang::translate('Add video');
             $submit = lang::translate('Add video');
+
+            $bytes = conf::getModuleIni('video_max_size');
+            $f->fileWithLabel('file', $bytes);
         }
 
-        html::legend($legend);
-        html::label('abstract', lang::translate('Abstract'));
-        html::textareaSmall('abstract');
 
-        $bytes = conf::getModuleIni('video_max_size');
-        html::fileWithLabel('file', $bytes);
 
-        html::submit('submit', $submit);
-        html::formEnd();
-        echo html::getStr();
+
+
+
+
+        $f->submit('submit', $submit);
+        $f->formEnd();
+        echo $f->getStr();
         return;
     }
 
@@ -195,42 +251,42 @@ class module {
      *
      * @return boolean true on success or false on failure
      */
-    public function insertFile() {
+    public function insertFile($title) {
 
         $values = db::prepareToPost();
-
         $db = new db();
-        $res = $this->uploadVideo();
+        
+        $db->begin();
+
+        $options = self::getOptions();
+        
+        $values['title'] = $title;
+        $values['parent_id'] = $options['parent_id'];
+        $values['reference'] = $options['reference'];
+        $values['user_id'] = session::getUserId();
+        $values['abstract'] = html::specialDecode($_POST['abstract']);
+        $values['mimetype'] = $_FILES['file']['type'];
+        $values['status'] = 1; // 1 = Transform in progress
+        $res = $db->insert(self::$fileTable, $values);
         if ($res) {
+            $db->commit();
+            return $title;
 
-            $db->begin();
-
-            $values['parent_id'] = self::$options['parent_id'];
-            $values['reference'] = self::$options['reference'];
-            $values['title'] = $_FILES['file']['name'];
-            $values['mimetype'] = $_FILES['file']['type'];
-            $values['full_path'] = self::$options['flv_file_path'];
-            $values['web_path'] = self::$options['flv_web_path'];
-            $values['full_path_mp4'] = self::$options['mp4_file_path'];
-            $values['web_path_mp4'] = self::$options['mp4_web_path'];
-            $res = $db->insert(self::$fileTable, $values);
-            if ($res) {
-                $db->commit();
-            } else {
-                $db->rollback();
-            }
+        } else {
+            $db->rollback();
         }
 
         return $res;
     }
     
+    /**
+     * Include video player based on configuration 
+     */
     public static  function includePlayer() {
         if (!conf::getModuleIni('video_player')) {
             conf::setModuleIni('video_player', 'videojs');
         }
-        
-        include_once conf::getModuleIni('video_player') . "/driver.php";
-        
+        include_once conf::getModuleIni('video_player') . "/driver.php";        
     }
 
     /**
@@ -245,8 +301,9 @@ class module {
         $str = video_player_include();
         $info = self::getAllVideoInfo($options);
 
-
         foreach ($info as $video) {
+
+            
             $str.= "<hr />";
             $str.= video_player_get_html($video);
             $str.= "<hr />";
@@ -254,6 +311,10 @@ class module {
         return $str;
     }
 
+    /**
+     * Upload a video
+     * @return boolean
+     */
     function uploadVideo() {
 
         // upload options
@@ -272,74 +333,162 @@ class module {
             return false;
         }
 
-        // transform to flv
-        $tmp_flv = $flv_file = null;
-        if (isset($_FILES['file'])) {
-
-            $flv_file = file::getFilename($_FILES['file']['name']) . ".flv";
-            $tmp_flv = "/tmp/" . $flv_file;
-            $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_flv);
-
-            if (!$res) {
-                self::$errors[] = lang::translate('Could not transform to flv');
-                return false;
-            }
-
-            $mp4_file = file::getFilename($_FILES['file']['name']) . ".mp4";
-            $tmp_mp4 = "/tmp/" . $mp4_file;
-            $res = $this->transformVideo($_FILES['file']['tmp_name'], $tmp_mp4);
-
-            if (!$res) {
-                self::$errors[] = lang::translate('Could not transform to flv');
-                return false;
-            }
-        }
-
-        self::$options = self::getOptions();
-        $web_dir = "/video/" . self::$options['reference'] . "/" . self::$options['parent_id'];
-        $web_dir = conf::getWebFilesPath($web_dir);
-        $full_path = conf::pathHtdocs() . $web_dir;
-        if (!file_exists($full_path)) {
-            mkdir($full_path, 0777, true);
-        }
-
-        // copy flv
-        $flv_web_path = $web_dir . "/" . $flv_file;
-        $flv_full_path = $full_path . "/" . $flv_file;
-
-        $copied = copy($tmp_flv, $flv_full_path);
-        unlink($tmp_flv);
-
-        // copy mp4
-        $mp4_web_path = $web_dir . "/" . $mp4_file;
-        $mp4_full_path = $full_path . "/" . $mp4_file;
-
-        $copied = copy($tmp_mp4, $mp4_full_path);
-        unlink($tmp_mp4);
-
-
-        self::$options['flv_file_path'] = $flv_full_path;
-        self::$options['flv_web_path'] = $flv_web_path;
-
-        self::$options['mp4_file_path'] = $mp4_full_path;
-        self::$options['mp4_web_path'] = $mp4_web_path;
-
-        return $copied;
-    }
-
-    function transformVideo($full_filename, $full_filename_flv) {
-        set_time_limit(0);
-
-        //$command = "avconv -i \"$full_filename\" -c copy \"$full_filename_flv\";";
-        $command = "avconv -i \"$full_filename\" -c:v libx264 -c:a copy   \"$full_filename_flv\";";
-        //$ffmpeg_command = "ffmpeg -i \"$full_filename\" -ar 44100 -ab 96 -f flv \"$full_filename_flv\";";
-        $output = array();
-        exec($command, $output, $ret);
-        if ($ret) {
+        $uniqid = uniqid();
+        $res = copy($_FILES['file']['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
+        
+        $type = file::getPrimMime($_FILES['file']['tmp_name']);
+        if ($type != 'video') {
+            self::$errors[] = lang::translate('Content-type needs to be Video');
             return false;
         }
+        
 
-        return true;
+        if ($res) {
+            return $this->insertFile($uniqid);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Start a background job based on filename and file type. 
+     * @param string $filename
+     * @param string $type
+     */
+    public function startBgJob($filename, $type = 'flv') {
+        $bg = new bgJob();
+        
+        // Tmp file
+        $full_from  =  sys_get_temp_dir() . "/" . $filename;
+        
+        $options = self::getOptions();
+        $base = "/video/$options[reference]/$options[parent_id]";
+        file::mkdir($base);
+        
+        $full_to = conf::getFullFilesPath($base . "/$filename.$type"); 
+        $output_file = conf::getFullFilesPath($base) . "/$filename.$type.output";
+        $pid_file = conf::getFullFilesPath($base) . "/$filename.$type.pid";
+
+        $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
+        $bg->execute($command, $output_file, $pid_file);
+
+    }
+    
+    /**
+     * Display progress of ffmpeg based on QUERY id and type
+     */
+    public function progressAction () {
+
+        $id = $_GET['id'];            
+        $row = q::select('video')->filter('title =', $id)->fetchSingle();
+        $p1 = (int) self::getProgress($row, 'mp4');
+        $p2 = (int) self::getProgress($row, 'mp4');
+        
+        $total = ($p1 + $p2) / 2;
+        
+        // Done when progress == 100
+        if ($total == 100) {
+            //log::error($id);
+            $row = q::select('video')->filter('title =', $id)->fetchSingle();
+            if ($row['status'] == 1) {
+
+                $ary = array('status' => '2');
+                $res = q::update('video')->values($ary)->filter('title =', $id)->exec();
+            }
+        }
+        
+        echo $total;
+        
+        die();
+    }
+    
+    /**
+     * Get video transformation progress based on video row and type
+     * @param array $row
+     * @param string $type
+     * @return int $progress e.g. 25
+     */
+    public static function getProgress($row, $type) {
+        
+        $output_file = "/video/$row[reference]/$row[parent_id]/$row[title].$type.output";
+        $full_to = conf::getFullFilesPath($output_file);
+        
+        if (file_exists($full_to)) {
+            $content = file_get_contents($full_to);
+        } else {
+            return;
+        }
+
+        if ($content) {
+            //get duration of source
+            preg_match("/Duration: (.*?), start:/", $content, $matches);
+
+            $rawDuration = $matches[1];
+
+            //rawDuration is in 00:00:00.00 format. This converts it to seconds.
+            $ar = array_reverse(explode(":", $rawDuration));
+            $duration = floatval($ar[0]);
+            if (!empty($ar[1])) {
+                $duration += intval($ar[1]) * 60;
+            }
+            if (!empty($ar[2])) {
+                $duration += intval($ar[2]) * 60 * 60;
+            }
+
+            //get the time in the file that is already encoded
+            preg_match_all("/time=(.*?) bitrate/", $content, $matches);
+
+            $rawTime = array_pop($matches);
+
+            //this is needed if there is more than one match
+            if (is_array($rawTime)) {
+                $rawTime = array_pop($rawTime);
+            }
+
+            //rawTime is in 00:00:00.00 format. This converts it to seconds.
+            $ar = array_reverse(explode(":", $rawTime));
+            $time = floatval($ar[0]);
+            if (!empty($ar[1])) {
+                $time += intval($ar[1]) * 60;
+            }
+            if (!empty($ar[2])) {
+                $time += intval($ar[2]) * 60 * 60;
+            }
+
+            //calculate the progress
+            $progress = round(($time / $duration) * 100);
+
+            // echo "Duration: " . $duration . "<br>";
+            // echo "Current Time: " . $time . "<br>";
+            // echo "Progress: " . $progress . "%";
+            return $progress;
+        }
+    }
+
+    /**
+     * 
+     */
+    public function testAction ($id) { 
+        //$id = $_GET['id'];
+        
+        ?>
+<script>
+setInterval(function(){
+    $.get('/video/progress?id=<?=$id?>', function(data) { 
+        //$('progress').attr('value', data);
+        $('#<?=$id?> .uk-progress-bar').attr('style', 'width: ' + data + '%');
+        $('#<?=$id?> .uk-progress-bar').html(data + '%');
+        if (data == '100') {
+            window.location.reload();
+            //$('#<?=$id?>').hide();
+        }
+    });
+}, 2000); // 5 seconds
+</script>
+<div class="uk-progress" id ="<?=$id?>">
+    <div class="uk-progress-bar"  style="width: 0%;">0%</div>
+</div>
+<?php
     }
 
     /**
@@ -408,7 +557,7 @@ class module {
      * @param array $options
      * @return string 
      */
-    public static function displayAllVideo($rows, $options) {
+    public function displayAllVideo($rows, $options) {
         $str = '';
 
         foreach ($rows as $val) {
@@ -418,9 +567,8 @@ class module {
 
             $link_options = array('title' => $val['abstract']);
 
-            $path = conf::getWebFilesPath();
             $str.= html::createLink(
-                            "$val[web_path_mp4]", $title, $link_options
+                            "$val[title]", $title, $link_options
             );
 
             // as a sub module the sub module can not know anything about the
@@ -434,7 +582,7 @@ class module {
                 $str.= MENU_SUB_SEPARATOR;
                 $str.= html::createLink($delete, lang::translate('Delete'));
             }
-            $str.= "<br />\n";
+            $str.= "<hr />\n";
         }
         return $str;
     }
@@ -448,7 +596,8 @@ class module {
         $db = new db();
         $search = array(
             'parent_id' => $options['parent_id'],
-            'reference' => $options['reference']
+            'reference' => $options['reference'],
+            'status' => 2
         );
 
         $rows = $db->selectAll(self::$fileTable, null, $search, null, null, 'created', false);
@@ -461,14 +610,15 @@ class module {
      * @return array $row with info 
      */
     public static function getSingleFileInfo($id = null) {
-        if (!$id)
+        if (!$id) {
             $id = self::$fileId;
+        }
         $db = new db();
         $search = array(
             'id' => $id
         );
 
-        $fields = array('id', 'parent_id', 'full_path', 'web_path', 'title', 'abstract', 'published', 'created', 'reference');
+        $fields = array('id', 'parent_id', 'title', 'abstract', 'published', 'created', 'reference');
         $row = $db->selectOne(self::$fileTable, null, $search, $fields, null, 'created', false);
         return $row;
     }
@@ -508,8 +658,8 @@ class module {
                 return false;
             }
             $values['file'] = $fp;
-            $values['title'] = $_video['file']['name'];
-            $values['mimetype'] = $_video['file']['type'];
+            $values['title'] = $_FILES['file']['name'];
+            $values['mimetype'] = $_FILES['file']['type'];
 
             $bind = array('file' => PDO::PARAM_LOB);
         }
@@ -523,14 +673,43 @@ class module {
     public function viewFileFormInsert() {
 
         $options = self::getOptions();
+        
+        if (isset($_GET['id']) && file_exists(sys_get_temp_dir() . "/" . $_GET['id']) ) {
+            $uniqid = $_GET['id'];
+            $this->startBgJob($uniqid, 'flv');
+            $this->startBgJob($uniqid, 'mp4');
+
+            $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
+            http::locationHeader(
+                            $redirect, 
+                            lang::translate('Video was uploaded, and it is now being transformed. You may move away, and return to see the progress')
+                    );
+            
+        }
+        
+        $ary = array(
+                'parent_id =' => $options['parent_id'],
+                'reference =' => $options['reference'],
+                'status =' => 1);
+        
+        $rows = q::select('video')->filterArray($ary)->fetch();
+        
+        foreach ($rows as $row) {
+            $this->testAction($row['title']);
+        }
+        
+
         if (isset($_POST['submit'])) {
             $this->validateInsert();
             if (!isset(self::$errors)) {
-                $res = $this->insertFile();
+                
+                // Copy the video, insert into DB and return a unique video id
+                $res = $this->uploadVideo();
+                
                 if ($res) {
-                    session::setActionMessage(lang::translate('Video was added'));
-                    $url = "/video/add/?$options[query]";
-                    http::locationHeader($url);
+                    $redirect = $_SERVER['REQUEST_URI'] . "&id=$res";
+                    http::locationHeader(
+                            $redirect);
                 } else {
                     html::errors(self::$errors);
                 }
