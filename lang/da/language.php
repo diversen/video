@@ -14,6 +14,6 @@ $LANG['No file was specified'] = 'Ingen fil blev angivet';
 $LANG['Videos'] = 'Videos';
 $LANG['Download video'] = 'Download video';
 $LANG['Job started'] = 'Job startede';
-$LANG['Video was uploaded, and it is now being transformed. You may move away, and return to see the progress'] = 'Video blev uploadet, og det er nu ved at blive forvandlet. Du må bevæge sig væk, og vende tilbage for at se de fremskridt,';
+$LANG['Video was uploaded, and it is now being transformed. You may move away, and return to see the progress'] = 'Video blev uploadet. Nu vil den blive transformeret. Du kan bevæge dig bort fra siden og vende tilbage igen.';
 $LANG['Video was deleted'] = 'Video blev slettet';
 $LANG['Video was edited'] = 'Video blev redigeret';

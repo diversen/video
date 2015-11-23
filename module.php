@@ -22,6 +22,7 @@ use diversen\http;
 use diversen\lang;
 use diversen\layout;
 use diversen\log;
+use diversen\uri;
 use diversen\moduleloader;
 use diversen\session;
 use diversen\template;
@@ -144,21 +145,38 @@ class module {
         $this->viewFileFormInsert();
 
         $options['admin'] = true;
-        $rows = $this->getAllvideoInfo($options);
-        echo $this->displayAllVideo($rows, $options);
+        
+        
+        $rows = self::getAllvideoInfo($options, 2);
+        
+        if (!empty($rows)) {
+            echo html::getHeadline('Uploaded videos', 'h3');
+            echo $this->displayAllVideo($rows, $options);
+        }
+        
+        $rows = self::getAllvideoInfo($options, 1);
+        if (!empty($rows)) {
+            echo html::getHeadline('Videos under progress', 'h3');
+            echo $this->displayAllVideo($rows, $options);
+        }
+        
+        
+        
 
     }
 
     public function deleteAction() {
 
+        $id = uri::fragment(2);
         $options = self::getOptions();
         if (!session::checkAccessControl('video_allow_edit')) {
             return;
         }
 
-        self::setHeadlineTitle('delete');
         layout::setMenuFromClassPath($options['reference']);
-        $this->viewFileFormDelete();
+        self::setHeadlineTitle('delete');
+        
+        $this->viewFileFormDelete($id);
     }
 
     public function editAction() {
@@ -168,7 +186,7 @@ class module {
         }
 
         self::setHeadlineTitle('edit');
-        $video->viewFileFormUpdate();
+        $this->viewFileFormUpdate();
     }
 
     /**
@@ -200,22 +218,17 @@ class module {
      */
     public function viewFileForm($method, $id = null, $values = array(), $caption = null) {
 
+        
         $f =  new html();
         $values = html::specialEncode($values);
         
         $f->formStart('file_upload_form');
-        if ($method == 'delete' && isset($id)) {
-            $legend = lang::translate('Delete video');
-            $f->legend($legend);
-            $f->submit('submit', lang::translate('Delete'));
-            $f->formEnd();
-            echo $f->getStr();
-            return;
-        }
+
 
         $legend = '';
         if (isset($id)) {
             $values = self::getSingleFileInfo($id);
+
             $f->init($values, 'submit');
             $legend = lang::translate('Edit video');
             $submit = lang::translate('Update video');
@@ -227,6 +240,8 @@ class module {
 
             $f->init($_POST, 'submit', true);
             $legend = lang::translate('Add video');
+            $f->label('abstract', lang::translate('Abstract'));
+            $f->textareaSmall('abstract');
             $submit = lang::translate('Add video');
 
             $bytes = conf::getModuleIni('video_max_size');
@@ -363,13 +378,21 @@ class module {
         
         $options = self::getOptions();
         $base = "/video/$options[reference]/$options[parent_id]";
+
         file::mkdir($base);
         
         $full_to = conf::getFullFilesPath($base . "/$filename.$type"); 
         $output_file = conf::getFullFilesPath($base) . "/$filename.$type.output";
         $pid_file = conf::getFullFilesPath($base) . "/$filename.$type.pid";
+        
+        if ($type == 'webm') {
+            $command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
+            
+        } else {
 
-        $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
+            $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
+        }
+
         $bg->execute($command, $output_file, $pid_file);
 
     }
@@ -382,9 +405,12 @@ class module {
         $id = $_GET['id'];            
         $row = q::select('video')->filter('title =', $id)->fetchSingle();
         $p1 = (int) self::getProgress($row, 'mp4');
-        $p2 = (int) self::getProgress($row, 'mp4');
+        $p2 = (int) self::getProgress($row, 'flv');
+        $p3 = (int) self::getProgress($row, 'webm');
         
-        $total = ($p1 + $p2) / 2;
+        $total = ($p1 + $p2 + $p3) / 3;
+        
+        $total = (int)$total;
         
         // Done when progress == 100
         if ($total == 100) {
@@ -509,11 +535,12 @@ setInterval(function(){
      */
     public function deleteFile($id) {
         $row = $this->getSingleFileInfo($id);
-
-        $file = conf::pathHtdocs() . "" . $row['web_path'];
-        if (file_exists($file)) {
-            unlink($row['full_path']); //filename)
-            unlink($row['full_path_mp4']);
+        
+        $base = conf::getFullFilesPath() . "/video/$row[reference]/$row[parent_id]/$row[title]";
+        if (file_exists($base . ".mp4")) {
+            //unlink($row['full_path']); //filename)
+            //unlink($row['full_path_mp4']);
+            unlink($base . ".mp4");
         }
         $db = new db();
         $res = $db->delete(self::$fileTable, 'id', $id);
@@ -567,17 +594,26 @@ setInterval(function(){
 
             $link_options = array('title' => $val['abstract']);
 
+            /*
             $str.= html::createLink(
                             "$val[title]", $title, $link_options
             );
-
+            */
+            $val = html::specialEncode($val);
+            $str.=$val['abstract'];
             // as a sub module the sub module can not know anything about the
             // id of individual video. That's why we will add id. 
             //print_r($options);
             $options['id'] = $val['id'];
             if (isset($options['admin'])) {
 
-                // delete link
+                // edit and delete
+
+                $edit = "/video/edit/$val[id]?" . $options['query'];
+                $str.= MENU_SUB_SEPARATOR;
+                $str.= html::createLink($edit, lang::translate('Edit'));
+                
+                
                 $delete = "/video/delete/$val[id]?" . $options['query'];
                 $str.= MENU_SUB_SEPARATOR;
                 $str.= html::createLink($delete, lang::translate('Delete'));
@@ -592,12 +628,12 @@ setInterval(function(){
      *
      * @return array assoc rows of modules belonging to user
      */
-    public static function getAllVideoInfo($options) {
+    public static function getAllVideoInfo($options, $status) {
         $db = new db();
         $search = array(
             'parent_id' => $options['parent_id'],
             'reference' => $options['reference'],
-            'status' => 2
+            'status' => $status
         );
 
         $rows = $db->selectAll(self::$fileTable, null, $search, null, null, 'created', false);
@@ -645,25 +681,10 @@ setInterval(function(){
         $bind = array();
         $values['abstract'] = html::specialDecode($_POST['abstract']);
 
+        print_r($values);
         $db = new db();
-        if (!empty($_FILES['file']['name'])) {
 
-            $options = array();
-            $options['filename'] = 'file';
-            $options['maxsize'] = self::$options['maxsize'];
-
-            $fp = blob::getFP('file', $options);
-            if (!$fp) {
-                self::$errors = blob::$errors;
-                return false;
-            }
-            $values['file'] = $fp;
-            $values['title'] = $_FILES['file']['name'];
-            $values['mimetype'] = $_FILES['file']['type'];
-
-            $bind = array('file' => PDO::PARAM_LOB);
-        }
-        $res = $db->update(self::$fileTable, $values, self::$fileId, $bind);
+        $res = $db->update(self::$fileTable, $values, uri::fragment(2));
         return $res;
     }
 
@@ -678,6 +699,7 @@ setInterval(function(){
             $uniqid = $_GET['id'];
             $this->startBgJob($uniqid, 'flv');
             $this->startBgJob($uniqid, 'mp4');
+            $this->startBgJob($uniqid, 'webm');
 
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(
@@ -720,30 +742,44 @@ setInterval(function(){
         $this->viewFileForm('insert');
     }
 
+
     /**
      * method to be used in a delete controller
      */
-    public function viewFileFormDelete() {
+    public function viewFileFormDelete($id) {
+
+
+        
         $options = self::getOptions();
+        $redirect = self::getRedirectVideoMain($options);
+        
         if (isset($_POST['submit'])) {
             if (!isset(self::$errors)) {
-                $res = $this->deleteFile(self::$fileId);
-                if ($res) {
-                    session::setActionMessage(lang::translate('Video was deleted'));
-                    $url = "/video/add/?$options[query]";
-                    http::locationHeader($url);
-                    exit;
+                $res = $this->deleteFile($id);
+                if ($res) { 
+                    http::locationHeader($redirect, lang::translate('Video was deleted'));
                 }
             } else {
                 html::errors(self::$errors);
             }
         }
-        $this->viewFileForm('delete', self::$fileId);
+        
+        $f = new html();
+
+        $f->formStart('file_upload_form');
+
+        $legend = lang::translate('Delete video');
+        $f->legend($legend);
+        $f->submit('submit', lang::translate('Delete'));
+        $f->formEnd();
+        echo $f->getStr();
+
+        return;
     }
     
-    public static function redirectVideoMain ($options) {
-        $url = "/files/add/?$options[query]";
-        http::locationHeader($url);   
+    public static function getRedirectVideoMain ($options) {
+        $url = "/video/add/?$options[query]";
+        return $url;
     }
 
     /**
@@ -751,14 +787,13 @@ setInterval(function(){
      */
     public function viewFileFormUpdate() {
 
+        $options = self::getOptions();
         if (isset($_POST['submit'])) {
             if (!isset(self::$errors)) {
                 $res = $this->updateFile();
                 if ($res) {
-                    session::setActionMessage(lang::translate('Video was edited'));
-                    $header = "Location: " . self::redirectVideoMain(self::$options);
-                    header($header);
-                    exit;
+                    $redirect = self::getRedirectVideoMain($options);
+                    http::locationHeader($redirect, lang::translate('Video was edited'));
                 } else {
                     html::errors(self::$errors);
                 }
@@ -766,7 +801,7 @@ setInterval(function(){
                 html::errors(self::$errors);
             }
         }
-        $this->viewFileForm('update', self::$fileId);
+        $this->viewFileForm('update', uri::fragment(2));
     }
 
 }
