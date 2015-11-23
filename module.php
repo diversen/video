@@ -387,9 +387,7 @@ class module {
         
         if ($type == 'webm') {
             $command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
-            
         } else {
-
             $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
         }
 
@@ -628,7 +626,7 @@ setInterval(function(){
      *
      * @return array assoc rows of modules belonging to user
      */
-    public static function getAllVideoInfo($options, $status) {
+    public static function getAllVideoInfo($options, $status = 2) {
         $db = new db();
         $search = array(
             'parent_id' => $options['parent_id'],
@@ -678,10 +676,7 @@ setInterval(function(){
      */
     public function updateFile() {
 
-        $bind = array();
         $values['abstract'] = html::specialDecode($_POST['abstract']);
-
-        print_r($values);
         $db = new db();
 
         $res = $db->update(self::$fileTable, $values, uri::fragment(2));
