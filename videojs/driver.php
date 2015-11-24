@@ -35,7 +35,7 @@ function video_player_get_html ($row) {
  <div class="videocontent">
 	
 <video id="really-cool-video" class="video-js vjs-default-skin" controls
- preload="auto"  width="auto" height="auto" 
+ preload="auto"  width="auto" height="auto"
  data-setup='{}'>
   <source type="video/mp4" src="$mp4">  
   <source type="video/flv" src="$flv"> 
@@ -45,7 +45,7 @@ function video_player_get_html ($row) {
     that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
   </p>
 </video>
-                 </div>
+  </div>
 </div>
 EOF;
         return $str;

@@ -386,11 +386,14 @@ class module {
         $pid_file = conf::getFullFilesPath($base) . "/$filename.$type.pid";
         
         if ($type == 'webm') {
-            $command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
+            // $command = "ffmpeg -i $full_from -c:v libx264 c:a libvorbis copy $full_to";
+            $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
+            //$command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
         } else {
             $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
         }
 
+        log::debug($command);
         $bg->execute($command, $output_file, $pid_file);
 
     }
@@ -690,12 +693,21 @@ setInterval(function(){
 
         $options = self::getOptions();
         
+        
+        
         if (isset($_GET['id']) && file_exists(sys_get_temp_dir() . "/" . $_GET['id']) ) {
             $uniqid = $_GET['id'];
+            
+            $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle();
+            //print_r($row); die;
+            
             $this->startBgJob($uniqid, 'flv');
             $this->startBgJob($uniqid, 'mp4');
-            $this->startBgJob($uniqid, 'webm');
-
+            
+            
+            //if ($row['mimetype'] != 'video/webm') { 
+                $this->startBgJob($uniqid, 'webm');
+            //}
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(
                             $redirect, 
