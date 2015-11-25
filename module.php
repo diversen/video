@@ -385,13 +385,13 @@ class module {
         $output_file = conf::getFullFilesPath($base) . "/$filename.$type.output";
         $pid_file = conf::getFullFilesPath($base) . "/$filename.$type.pid";
         
-        if ($type == 'webm') {
+        // if ($type == 'webm') {
             // $command = "ffmpeg -i $full_from -c:v libx264 c:a libvorbis copy $full_to";
-            $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
+        //    $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
             //$command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
-        } else {
+        //} else {
             $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
-        }
+        //}
 
         log::debug($command);
         $bg->execute($command, $output_file, $pid_file);
@@ -406,10 +406,11 @@ class module {
         $id = $_GET['id'];            
         $row = q::select('video')->filter('title =', $id)->fetchSingle();
         $p1 = (int) self::getProgress($row, 'mp4');
-        $p2 = (int) self::getProgress($row, 'flv');
-        $p3 = (int) self::getProgress($row, 'webm');
+        // $p2 = (int) self::getProgress($row, 'flv');
+        // $p3 = (int) self::getProgress($row, 'webm');
         
-        $total = ($p1 + $p2 + $p3) / 3;
+        // $total = ($p1 + $p2 + $p3) / 3;
+        $total = $p1;
         
         $total = (int)$total;
         
@@ -701,12 +702,12 @@ setInterval(function(){
             $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle();
             //print_r($row); die;
             
-            $this->startBgJob($uniqid, 'flv');
+            // $this->startBgJob($uniqid, 'flv');
             $this->startBgJob($uniqid, 'mp4');
             
             
             //if ($row['mimetype'] != 'video/webm') { 
-                $this->startBgJob($uniqid, 'webm');
+            // $this->startBgJob($uniqid, 'webm');
             //}
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(

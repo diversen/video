@@ -38,8 +38,8 @@ function video_player_get_html ($row) {
  preload="auto"  width="auto" height="auto"
  data-setup='{}'>
   <source type="video/mp4" src="$mp4">  
-  <source type="video/flv" src="$flv"> 
-  <source type="video/webm" src="$webm">
+  <!--<source type="video/flv" src="$flv"> 
+  <source type="video/webm" src="$webm">-->
   <p class="vjs-no-js">
     To view this video please enable JavaScript, and consider upgrading to a web browser
     that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
