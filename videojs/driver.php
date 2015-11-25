@@ -51,3 +51,24 @@ EOF;
         return $str;
 }
 
+
+
+function video_player_get_html_epub ($row) {
+
+    // poster="really-cool-video-poster.jpg"
+    $base_path = conf::getFullFilesPath() . "/video/$row[reference]/$row[parent_id]/$row[title]";
+    //$flv = $base_path . ".flv";
+    $mp4 = $base_path . ".mp4";
+    //$webm = $base_path . ".webm";
+    $str = <<<EOF
+<video controls="controls"> 
+   <source src="$mp4" type="video/mp4" /> 
+   <p> 
+      The videos can not be played back on your system.<br/> 
+      Try viewing on Youtube (requires Internet connection): 
+      <a href="http://youtu.be/etE5urBps_w">Relative Velocity on Youtube</a>. 
+   </p> 
+</video>
+EOF;
+        return $str;
+}

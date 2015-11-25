@@ -311,20 +311,48 @@ class module {
      * @return type
      */
     public static function subModuleInlineContent($options) {
-
+        return self::getVideoHtml($options);
+        
+    }
+    
+    public static function getVideoHtml ($options) {
+        
         self::includePlayer();
         $str = video_player_include();
         $info = self::getAllVideoInfo($options);
 
         foreach ($info as $video) {
-
-            
             $str.= "<hr />";
             $str.= video_player_get_html($video);
             $str.= "<hr />";
         }
         return $str;
     }
+    
+    /**
+     * Get videos connected to a entity: 
+     * 
+     * @param type $options
+     * @return type
+     */
+    public static function getVideoEpub($options) {
+
+        self::includePlayer();
+        //$str = video_player_include();
+        $info = self::getAllVideoInfo($options);
+        $str = '';
+        foreach ($info as $video) {
+            
+            $str.= "<hr />";
+            $str.= video_player_get_html_epub($video);
+            $str.= "<hr />";
+        }
+        return $str;
+    }
+    
+    public static $player = 'html'; // Epub or HTML
+    
+    
 
     public function isAllowedMime($mime) {
         $ary = [];
