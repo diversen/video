@@ -326,6 +326,17 @@ class module {
         return $str;
     }
 
+    public function isAllowedMime($mime) {
+        $ary = [];
+        $ary[] = 'video/webm';
+        $ary[] = 'application/ogg';
+        $ary[] = 'video/ogg';
+        $ary[] = 'video/mp4';
+        if (in_array($mime, $ary)) {
+            return true;
+        } 
+        return false;
+    }
     /**
      * Upload a video
      * @return boolean
@@ -351,13 +362,12 @@ class module {
         $uniqid = uniqid();
         $res = copy($_FILES['file']['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         
-        $type = file::getPrimMime($_FILES['file']['tmp_name']);
-        if ($type != 'video') {
-            self::$errors[] = lang::translate('Content-type needs to be Video');
+        $type = file::getMime($_FILES['file']['tmp_name']);
+        if (!$this->isAllowedMime($type)) {
+            self::$errors[] = lang::translate('Content-type is not allowed');
             return false;
         }
         
-
         if ($res) {
             return $this->insertFile($uniqid);
         }
