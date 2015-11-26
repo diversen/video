@@ -311,11 +311,11 @@ class module {
      * @return type
      */
     public static function subModuleInlineContent($options) {
-        return self::getVideoHtml($options);
+        return self::getVideoJs($options);
         
     }
     
-    public static function getVideoHtml ($options) {
+    public static function getVideoJs ($options) {
         
         self::includePlayer();
         $str = video_player_include();
@@ -335,7 +335,7 @@ class module {
      * @param type $options
      * @return type
      */
-    public static function getVideoEpub($options) {
+    public static function getVideoHtml5($options) {
 
         self::includePlayer();
         //$str = video_player_include();
