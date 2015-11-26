@@ -53,7 +53,7 @@ EOF;
 
 
 
-function video_player_get_html_epub ($row) {
+function video_player_get_html5 ($row) {
 
     // poster="really-cool-video-poster.jpg"
     $base_path = conf::getFullFilesPath() . "/video/$row[reference]/$row[parent_id]/$row[title]";

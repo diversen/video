@@ -344,7 +344,7 @@ class module {
         foreach ($info as $video) {
             
             $str.= "<hr />";
-            $str.= video_player_get_html_epub($video);
+            $str.= video_player_get_html5($video);
             $str.= "<hr />";
         }
         return $str;
