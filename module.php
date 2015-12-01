@@ -27,11 +27,9 @@ use diversen\moduleloader;
 use diversen\session;
 use diversen\template;
 use diversen\upload;
-use diversen\upload\blob;
 use diversen\uri\manip;
 use diversen\user;
-use PDO;
-
+use diversen\strings;
 
 /**
  * class content video is used for keeping track of file changes
@@ -165,6 +163,10 @@ class module {
 
     }
 
+    /**
+     * Action for deleting a video
+     * @return type
+     */
     public function deleteAction() {
 
         $id = uri::fragment(2);
@@ -324,9 +326,37 @@ class module {
         foreach ($info as $video) {
             $str.= "<hr />";
             $str.= video_player_get_html($video);
-            $str.= "<hr />";
+            //$str.= "<hr />";
         }
         return $str;
+    }
+    
+    public function rpcAction () {
+        $reference = @$_GET['reference'];
+        $parent_id = @$_GET['parent_id'];
+        
+        if (empty($reference) || empty($parent_id)) {
+            return;
+        }
+        
+        $rows = self::getAllVideoInfo(
+                array(
+                    'reference' => $reference, 
+                    'parent_id' => $parent_id)
+                );
+        foreach ($rows as $key => $val) {
+            
+            $base = "/video/$reference/$parent_id";
+            $mp4 = conf::getWebFilesPath($base . "/$val[title].mp4");
+            $rows[$key]['mp4'] = $mp4; //self::$path . "/download/$val[id]/" . strings::utf8SlugString($val['title']);
+            //$rows[$key]['url_s'] = self::$path . "/download/$val[id]/" . strings::utf8SlugString($val['title']) . "?size=file_thumb";
+            $str = strings::sanitizeUrlRigid(html::specialDecode($val['abstract']));
+            $rows[$key]['title'] = $str; 
+        }
+        
+        $videos = array ('videos' => $rows);
+        echo json_encode($videos);
+        die;
     }
     
     /**
@@ -345,7 +375,7 @@ class module {
             
             $str.= "<hr />";
             $str.= video_player_get_html5($video);
-            $str.= "<hr />";
+            //$str.= "<hr />";
         }
         return $str;
     }
@@ -353,13 +383,26 @@ class module {
     public static $player = 'html'; // Epub or HTML
     
     
-
-    public function isAllowedMime($mime) {
+    /**
+     * Check if video mime is allowed. 
+     * @param string $file
+     * @return boolean $res true if allowed else false
+     */
+    public function isAllowedMime($file) {
+        
+        $prim_type = file::getPrimMime($file);
+        if ($prim_type == 'video') {
+            return true;
+        }
+        
+        $mime = file::getMime($file);
+        
         $ary = [];
         $ary[] = 'video/webm';
         $ary[] = 'application/ogg';
         $ary[] = 'video/ogg';
         $ary[] = 'video/mp4';
+
         if (in_array($mime, $ary)) {
             return true;
         } 
@@ -390,8 +433,7 @@ class module {
         $uniqid = uniqid();
         $res = copy($_FILES['file']['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         
-        $type = file::getMime($_FILES['file']['tmp_name']);
-        if (!$this->isAllowedMime($type)) {
+        if (!$this->isAllowedMime($_FILES['file']['tmp_name'])) {
             self::$errors[] = lang::translate('Content-type is not allowed');
             return false;
         }
@@ -428,7 +470,7 @@ class module {
         //    $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
             //$command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
         //} else {
-            $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
+        $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
         //}
 
         log::debug($command);
