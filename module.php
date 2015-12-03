@@ -30,6 +30,7 @@ use diversen\upload;
 use diversen\uri\manip;
 use diversen\user;
 use diversen\strings;
+use diversen\html\video;
 
 /**
  * class content video is used for keeping track of file changes
@@ -307,30 +308,11 @@ class module {
     }
 
     /**
-     * Get videos connected to a entity: 
-     * 
-     * @param type $options
-     * @return type
+     * rpc action for fetchng info about videeos based on a reference and
+     * a parent_id.
+     * echo a jason string containing the info. 
+     * @return void
      */
-    public static function subModuleInlineContent($options) {
-        return self::getVideoJs($options);
-        
-    }
-    
-    public static function getVideoJs ($options) {
-        
-        self::includePlayer();
-        $str = video_player_include();
-        $info = self::getAllVideoInfo($options);
-
-        foreach ($info as $video) {
-            $str.= "<hr />";
-            $str.= video_player_get_html($video);
-            //$str.= "<hr />";
-        }
-        return $str;
-    }
-    
     public function rpcAction () {
         $reference = @$_GET['reference'];
         $parent_id = @$_GET['parent_id'];
@@ -351,7 +333,8 @@ class module {
             $rows[$key]['mp4'] = $mp4; //self::$path . "/download/$val[id]/" . strings::utf8SlugString($val['title']);
             //$rows[$key]['url_s'] = self::$path . "/download/$val[id]/" . strings::utf8SlugString($val['title']) . "?size=file_thumb";
             $str = strings::sanitizeUrlRigid(html::specialDecode($val['abstract']));
-            $rows[$key]['title'] = $str; 
+            $rows[$key]['abstract'] = $str;
+            
         }
         
         $videos = array ('videos' => $rows);
