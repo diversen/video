@@ -453,8 +453,17 @@ class module {
         //    $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
             //$command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
         //} else {
-        $command = "ffmpeg -i $full_from -c:v libx264 -c:a copy $full_to";
-        //}
+        //$command = "ffmpeg -i $full_from -s 640x480 -vcodec mpeg4 -b 4000000 -acodec libmp3lame -ab 192000 $full_to";
+        
+        $width = conf::getModuleIni('video_scale_width');
+        if (!$width ) {
+            $width = '720';
+        }
+        $command = "ffmpeg -i $full_from -vf 'scale=$width:trunc(ow/a/2)*2' -c:v libx264  $full_to";
+         //$command = "ffmpeg -i $full_from -s 640x480 -c:v libx264  $full_to";
+        // -vf "scale=640:-1" 
+        
+        //}// -c:a copy
 
         log::debug($command);
         $bg->execute($command, $output_file, $pid_file);
