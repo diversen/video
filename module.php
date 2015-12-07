@@ -243,12 +243,13 @@ class module {
 
             $f->init($_POST, 'submit', true);
             $legend = lang::translate('Add video');
+            
+            $bytes = conf::getModuleIni('video_max_size');
+            $f->fileWithLabel('file', $bytes);
+            
             $f->label('abstract', lang::translate('Abstract'));
             $f->textareaSmall('abstract');
             $submit = lang::translate('Add video');
-
-            $bytes = conf::getModuleIni('video_max_size');
-            $f->fileWithLabel('file', $bytes);
         }
 
 
