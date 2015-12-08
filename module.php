@@ -30,7 +30,7 @@ use diversen\upload;
 use diversen\uri\manip;
 use diversen\user;
 use diversen\strings;
-use diversen\html\video;
+//use diversen\html\video;
 
 /**
  * class content video is used for keeping track of file changes
@@ -868,8 +868,6 @@ setInterval(function(){
      */
     public function viewFileFormDelete($id) {
 
-
-        
         $options = self::getOptions();
         $redirect = self::getRedirectVideoMain($options);
         
@@ -923,5 +921,4 @@ setInterval(function(){
         }
         $this->formInsert('update', uri::fragment(2));
     }
-
 }
