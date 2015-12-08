@@ -116,6 +116,33 @@ class module {
         }
         return true;
     }
+    
+        /**
+     * Get uploaded files as a organized array
+     * @return array $ary
+     */
+    public function getUploadedFilesArray () {
+                
+        $input ='files';
+        
+        $ary = array ();
+        foreach ($_FILES[$input]['name'] as $key => $name) {
+            $ary[$key]['name'] = $name;
+        }
+        foreach ($_FILES[$input]['type'] as $key => $type) {
+            $ary[$key]['type'] = $type;
+        }
+        foreach ($_FILES[$input]['tmp_name'] as $key => $tmp_name) {
+            $ary[$key]['tmp_name'] = $tmp_name;
+        }
+        foreach ($_FILES[$input]['error'] as $key => $error) {
+            $ary[$key]['error'] = $error;
+        }
+        foreach ($_FILES[$input]['size'] as $key => $size) {
+            $ary[$key]['size'] = $size;
+        }
+        return $ary;
+    }
       
     /**
      * Main action. Add a video.
@@ -141,7 +168,7 @@ class module {
         layout::setMenuFromClassPath($options['reference']);
 
         //$video = new self($options);
-        $this->viewFileFormInsert();
+        $this->viewInsert();
 
         $options['admin'] = true;
         
@@ -219,14 +246,14 @@ class module {
      * @param string    method (update, delete or insert)
      * @param int       id (if delete or update)
      */
-    public function viewFileForm($method, $id = null, $values = array(), $caption = null) {
+    public function formInsert($method, $id = null, $values = array(), $caption = null) {
 
         
         $f =  new html();
         $values = html::specialEncode($values);
         
-        $f->formStart('file_upload_form');
-
+        //$f->formStart('file_upload_form');
+        $f->formStartAry(array ('onsubmit'=>"setFormSubmitting()"));
 
         $legend = '';
         if (isset($id)) {
@@ -237,7 +264,7 @@ class module {
             $submit = lang::translate('Update video');
 
             $f->legend($legend);
-            $f->label('abstract', lang::translate('Abstract'));
+            $f->label('abstract', lang::translate('Title'));
             $f->textareaSmall('abstract');
         } else {
 
@@ -245,18 +272,14 @@ class module {
             $legend = lang::translate('Add video');
             
             $bytes = conf::getModuleIni('video_max_size');
-            $f->fileWithLabel('file', $bytes);
+            //$options = array ('multiple' => 'multiple');
+            $options = array ();
+            $f->fileWithLabel('files[]', $bytes, $options);
             
-            $f->label('abstract', lang::translate('Abstract'));
+            $f->label('abstract', lang::translate('Title'));
             $f->textareaSmall('abstract');
             $submit = lang::translate('Add video');
         }
-
-
-
-
-
-
 
         $f->submit('submit', $submit);
         $f->formEnd();
@@ -270,13 +293,12 @@ class module {
      *
      * @return boolean true on success or false on failure
      */
-    public function insertFile($title) {
+    public function insertFile($title, $file) {
 
         $values = db::prepareToPost();
         $db = new db();
         
         $db->begin();
-
         $options = self::getOptions();
         
         $values['title'] = $title;
@@ -284,7 +306,7 @@ class module {
         $values['reference'] = $options['reference'];
         $values['user_id'] = session::getUserId();
         $values['abstract'] = html::specialDecode($_POST['abstract']);
-        $values['mimetype'] = $_FILES['file']['type'];
+        $values['mimetype'] = $file['type'];
         $values['status'] = 1; // 1 = Transform in progress
         $res = $db->insert(self::$fileTable, $values);
         if ($res) {
@@ -396,38 +418,61 @@ class module {
      * Upload a video
      * @return boolean
      */
-    function uploadVideo() {
+    public function uploadVideo($file) {
 
         // upload options
         $options['maxsize'] = conf::getModuleIni('video_max_size');
         upload::setOptions($options);
         
-        $res = upload::checkUploadNative('file');
+        $res = upload::checkUploadNative($file);
         if (!$res) {
             self::$errors = upload::$errors;
             return false;
         }
 
-        $res = upload::checkMaxSize('file');
+        $res = upload::checkMaxSize($file);
         if (!$res) {
             self::$errors = upload::$errors;
             return false;
         }
 
         $uniqid = uniqid();
-        $res = copy($_FILES['file']['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         
-        if (!$this->isAllowedMime($_FILES['file']['tmp_name'])) {
+        
+        if (!$this->isAllowedMime($file['tmp_name'])) {
             self::$errors[] = lang::translate('Content-type is not allowed');
             return false;
         }
         
+        $res = copy($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
-            return $this->insertFile($uniqid);
+            return $this->insertFile($uniqid, $file);
         }
         
         return false;
     }
+    
+    
+    public function uploadJs () { ?>
+<script>
+var formSubmitting = false;
+var setFormSubmitting = function() { formSubmitting = true; };
+
+window.onload = function() {
+    window.addEventListener("beforeunload", function (e) {
+        if (formSubmitting) {
+            return undefined;
+        }
+
+        var confirmationMessage = 'It looks like you have been editing something. '
+                                + 'If you leave before saving, your changes will be lost.';
+
+        (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+        return confirmationMessage; //Gecko + Webkit, Safari, Chrome etc.
+    });
+};
+</script>
+    <?php }
 
     /**
      * Start a background job based on filename and file type. 
@@ -596,7 +641,7 @@ setInterval(function(){
      * method for validating a post before insert
      */
     public function validateInsert($mode = false) {
-        if (empty($_FILES['file']['name'])) {
+        if (empty($_FILES['files']['name'])) {
             self::$errors[] = lang::translate('No file was specified');
         }
     }
@@ -678,7 +723,6 @@ setInterval(function(){
             $str.=$val['abstract'];
             // as a sub module the sub module can not know anything about the
             // id of individual video. That's why we will add id. 
-            //print_r($options);
             $options['id'] = $val['id'];
             if (isset($options['admin'])) {
 
@@ -763,25 +807,17 @@ setInterval(function(){
     /**
      * method to be used in a insert controller
      */
-    public function viewFileFormInsert() {
+    public function viewInsert() {
 
         $options = self::getOptions();
         
-        
-        
+        // If iset 'id', the upload has been done, and the transformation should begin
         if (isset($_GET['id']) && file_exists(sys_get_temp_dir() . "/" . $_GET['id']) ) {
             $uniqid = $_GET['id'];
-            
-            $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle();
-            //print_r($row); die;
-            
-            // $this->startBgJob($uniqid, 'flv');
+           
+            $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle(); 
             $this->startBgJob($uniqid, 'mp4');
             
-            
-            //if ($row['mimetype'] != 'video/webm') { 
-            // $this->startBgJob($uniqid, 'webm');
-            //}
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(
                             $redirect, 
@@ -801,26 +837,29 @@ setInterval(function(){
             $this->testAction($row['title']);
         }
         
-
         if (isset($_POST['submit'])) {
+            // $this->uploadJs();
             $this->validateInsert();
             if (!isset(self::$errors)) {
                 
                 // Copy the video, insert into DB and return a unique video id
-                $res = $this->uploadVideo();
+                // So far only one video at a time
+                $files = $this->getUploadedFilesArray();  
+                //print_r($file); die;
+                $res = $this->uploadVideo($files[0]);
                 
                 if ($res) {
                     $redirect = $_SERVER['REQUEST_URI'] . "&id=$res";
                     http::locationHeader(
                             $redirect);
                 } else {
-                    html::errors(self::$errors);
+                    echo html::getErrors(self::$errors);
                 }
             } else {
-                html::errors(self::$errors);
+                echo html::getErrors(self::$errors);
             }
         }
-        $this->viewFileForm('insert');
+        $this->formInsert('insert');
     }
 
 
@@ -882,7 +921,7 @@ setInterval(function(){
                 html::errors(self::$errors);
             }
         }
-        $this->viewFileForm('update', uri::fragment(2));
+        $this->formInsert('update', uri::fragment(2));
     }
 
 }
