@@ -658,10 +658,16 @@ setInterval(function(){
         
         $base = conf::getFullFilesPath() . "/video/$row[reference]/$row[parent_id]/$row[title]";
         if (file_exists($base . ".mp4")) {
-            //unlink($row['full_path']); //filename)
-            //unlink($row['full_path_mp4']);
             unlink($base . ".mp4");
         }
+        
+        // Kill process if running
+        $pid = $base . ".mp4.pid";
+        if (file_exists($pid)) {
+            $contents = trim(file_get_contents($pid));
+            shell_exec("kill $contents");
+        }
+        
         $db = new db();
         $res = $db->delete(self::$fileTable, 'id', $id);
         return $res;
@@ -812,7 +818,10 @@ setInterval(function(){
         $options = self::getOptions();
         
         // If iset 'id', the upload has been done, and the transformation should begin
-        if (isset($_GET['id']) && file_exists(sys_get_temp_dir() . "/" . $_GET['id']) ) {
+        if (isset($_GET['id'])  ) { // && file_exists(sys_get_temp_dir() . "/" . $_GET['id'])
+            
+            
+            
             $uniqid = $_GET['id'];
            
             $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle(); 
