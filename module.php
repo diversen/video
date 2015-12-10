@@ -206,7 +206,7 @@ class module {
         layout::setMenuFromClassPath($options['reference']);
         self::setHeadlineTitle('delete');
         
-        $this->viewFileFormDelete($id);
+        $this->viewDelete($id);
     }
 
     public function editAction() {
@@ -216,7 +216,7 @@ class module {
         }
 
         self::setHeadlineTitle('edit');
-        $this->viewFileFormUpdate();
+        $this->viewUpdate();
     }
 
     /**
@@ -272,8 +272,8 @@ class module {
             $legend = lang::translate('Add video');
             
             $bytes = conf::getModuleIni('video_max_size');
-            //$options = array ('multiple' => 'multiple');
-            $options = array ();
+            $options = array ('multiple' => 'multiple');
+            //$options = array ();
             $f->fileWithLabel('files[]', $bytes, $options);
             
             $f->label('abstract', lang::translate('Title'));
@@ -288,12 +288,11 @@ class module {
     }
 
     /**
-     * method for inserting a module into the database
-     * (access control is cheched in controller file)
+     * Method for inserting a video into the database
      *
-     * @return boolean true on success or false on failure
+     * @return boolean|string $res uniq title string on success, false on failure
      */
-    public function insertFile($title, $file) {
+    public function insertFileDb($title, $file) {
 
         $values = db::prepareToPost();
         $db = new db();
@@ -414,11 +413,30 @@ class module {
         } 
         return false;
     }
+    
+    /**
+     * Insert all files
+     * @param array $files
+     * @return false|array array with file ids on success, false on failure. 
+     */
+    public function insertAll ($files) {
+        $success = [];
+        foreach($files as $file) {
+            $res = $this->moveVideo($file);
+            if ($res) {
+                $success[] = $res;
+            } else {
+                return false;
+            }
+        }
+        return $success;
+    }
+    
     /**
      * Upload a video
      * @return boolean
      */
-    public function uploadVideo($file) {
+    public function moveVideo($file) {
 
         // upload options
         $options['maxsize'] = conf::getModuleIni('video_max_size');
@@ -437,8 +455,6 @@ class module {
         }
 
         $uniqid = uniqid();
-        
-        
         if (!$this->isAllowedMime($file['tmp_name'])) {
             self::$errors[] = lang::translate('Content-type is not allowed');
             return false;
@@ -446,9 +462,9 @@ class module {
         
         $res = copy($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
-            return $this->insertFile($uniqid, $file);
+            unlink($file['tmp_name']);
+            return $this->insertFileDb($uniqid, $file);
         }
-        
         return false;
     }
     
@@ -641,7 +657,7 @@ setInterval(function(){
      * method for validating a post before insert
      */
     public function validateInsert($mode = false) {
-        if (empty($_FILES['files']['name'])) {
+        if (empty($_FILES['files']['name']['0'])){
             self::$errors[] = lang::translate('No file was specified');
         }
     }
@@ -818,21 +834,19 @@ setInterval(function(){
         $options = self::getOptions();
         
         // If iset 'id', the upload has been done, and the transformation should begin
-        if (isset($_GET['id'])  ) { // && file_exists(sys_get_temp_dir() . "/" . $_GET['id'])
-            
-            
-            
-            $uniqid = $_GET['id'];
-           
-            $row = q::select('video')->filter('title =', $_GET['id'])->fetchSingle(); 
-            $this->startBgJob($uniqid, 'mp4');
+        if (isset($_GET['id']) && is_array($_GET['id'])) { // && file_exists(sys_get_temp_dir() . "/" . $_GET['id'])
+
+            $ary = $_GET['id'];
+            foreach ($ary as $id) {
+                $row = q::select('video')->filter('title =', $id)->fetchSingle(); 
+                $this->startBgJob($id, 'mp4');
+            }
             
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(
-                            $redirect, 
-                            lang::translate('Video was uploaded, and it is now being transformed. You may move away, and return to see the progress')
-                    );
-            
+                $redirect, 
+                lang::translate('Video(s) was uploaded, and it is now being transformed. You may move away, and return to see the progress')
+            );
         }
         
         $ary = array(
@@ -851,18 +865,17 @@ setInterval(function(){
             $this->validateInsert();
             if (!isset(self::$errors)) {
                 
-                // Copy the video, insert into DB and return a unique video id
-                // So far only one video at a time
+                // Get array with info about the uploaded files
                 $files = $this->getUploadedFilesArray();  
-                //print_r($file); die;
-                $res = $this->uploadVideo($files[0]);
+                $res = $this->insertAll($files);
                 
-                if ($res) {
-                    $redirect = $_SERVER['REQUEST_URI'] . "&id=$res";
+                if (!$res) {
+                    echo html::getErrors(self::$errors);
+                } else {
+                    $id_str = $this->getUploadIdsAsStr($res);
+                    $redirect = $_SERVER['REQUEST_URI'] . "&$id_str";
                     http::locationHeader(
                             $redirect);
-                } else {
-                    echo html::getErrors(self::$errors);
                 }
             } else {
                 echo html::getErrors(self::$errors);
@@ -870,12 +883,25 @@ setInterval(function(){
         }
         $this->formInsert('insert');
     }
+    
+    /**
+     * Return files as an GET string with [] of ids
+     * @param array $ids
+     * @return string $str
+     */
+    public function getUploadIdsAsStr ($ids) {
+        $str = '';
+        foreach($ids as $id) {
+            $str.= "id[]=$id&";
+        }
+        return $str;
+    }
 
 
     /**
      * method to be used in a delete controller
      */
-    public function viewFileFormDelete($id) {
+    public function viewDelete($id) {
 
         $options = self::getOptions();
         $redirect = self::getRedirectVideoMain($options);
@@ -912,7 +938,7 @@ setInterval(function(){
     /**
      * merhod to be used in an update controller 
      */
-    public function viewFileFormUpdate() {
+    public function viewUpdate() {
 
         $options = self::getOptions();
         if (isset($_POST['submit'])) {
