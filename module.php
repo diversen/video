@@ -202,7 +202,12 @@ class module {
         if (!session::checkAccessControl('video_allow_edit')) {
             return;
         }
-
+        
+        if (!self::checkAccess($options)) {
+            moduleloader::setStatus(403);
+            return false;
+        }
+        
         layout::setMenuFromClassPath($options['reference']);
         self::setHeadlineTitle('delete');
         
@@ -213,6 +218,12 @@ class module {
 
         if (!session::checkAccessControl('video_allow_edit')) {
             return;
+        }
+        
+        $options = self::getOptions();
+        if (!self::checkAccess($options)) {
+            moduleloader::setStatus(403);
+            return false;
         }
 
         self::setHeadlineTitle('edit');
@@ -460,7 +471,7 @@ class module {
             return false;
         }
         
-        $res = copy($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
+        $res = move_uploaded_file($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
             unlink($file['tmp_name']);
             return $this->insertFileDb($uniqid, $file);
@@ -521,6 +532,9 @@ window.onload = function() {
         if (!$width ) {
             $width = '720';
         }
+        
+        
+        $full_from = escapeshellarg($full_from);
         $command = "ffmpeg -i $full_from -vf 'scale=$width:trunc(ow/a/2)*2' -c:v libx264  $full_to";
          //$command = "ffmpeg -i $full_from -s 640x480 -c:v libx264  $full_to";
         // -vf "scale=640:-1" 
@@ -540,17 +554,10 @@ window.onload = function() {
         $id = $_GET['id'];            
         $row = q::select('video')->filter('title =', $id)->fetchSingle();
         $p1 = (int) self::getProgress($row, 'mp4');
-        // $p2 = (int) self::getProgress($row, 'flv');
-        // $p3 = (int) self::getProgress($row, 'webm');
-        
-        // $total = ($p1 + $p2 + $p3) / 3;
-        $total = $p1;
-        
+
+        $total = $p1;        
         $total = (int)$total;
-        
-        // Done when progress == 100
         if ($total == 100) {
-            //log::error($id);
             $row = q::select('video')->filter('title =', $id)->fetchSingle();
             if ($row['status'] == 1) {
 
@@ -560,7 +567,6 @@ window.onload = function() {
         }
         
         echo $total;
-        
         die();
     }
     
@@ -630,10 +636,7 @@ window.onload = function() {
     /**
      * 
      */
-    public function testAction ($id) { 
-        //$id = $_GET['id'];
-        
-        ?>
+    public function jsProgressBar ($id) { ?>
 <script>
 setInterval(function(){
     $.get('/video/progress?id=<?=$id?>', function(data) { 
@@ -645,7 +648,7 @@ setInterval(function(){
             //$('#<?=$id?>').hide();
         }
     });
-}, 2000); // 5 seconds
+}, 2000);
 </script>
 <div class="uk-progress" id ="<?=$id?>">
     <div class="uk-progress-bar"  style="width: 0%;">0%</div>
@@ -658,7 +661,7 @@ setInterval(function(){
      */
     public function validateInsert($mode = false) {
         if (empty($_FILES['files']['name']['0'])){
-            self::$errors[] = lang::translate('No file was specified');
+            self::$errors[] = lang::translate('No files were selected');
         }
     }
 
@@ -682,6 +685,8 @@ setInterval(function(){
         if (file_exists($pid)) {
             $contents = trim(file_get_contents($pid));
             shell_exec("kill $contents");
+            unlink($pid);
+            unlink($base . ".mp4.output");
         }
         
         $db = new db();
@@ -845,7 +850,7 @@ setInterval(function(){
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
             http::locationHeader(
                 $redirect, 
-                lang::translate('Video(s) was uploaded, and it is now being transformed. You may move away, and return to see the progress')
+                lang::translate('Video(s) uploaded. They are now being transformed. You may move away, and return to see the progress')
             );
         }
         
@@ -857,7 +862,7 @@ setInterval(function(){
         $rows = q::select('video')->filterArray($ary)->fetch();
         
         foreach ($rows as $row) {
-            $this->testAction($row['title']);
+            $this->jsProgressBar($row['title']);
         }
         
         if (isset($_POST['submit'])) {
