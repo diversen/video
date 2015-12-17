@@ -830,6 +830,7 @@ setInterval(function(){
             }
             
             $redirect = manip::deleteQueryPart($_SERVER['REQUEST_URI'], 'id');
+            
             http::locationHeader(
                 $redirect, 
                 lang::translate('Video(s) uploaded. They are now being transformed. You may move away, and return to see the progress')
