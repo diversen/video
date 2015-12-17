@@ -1,10 +1,10 @@
 <?php
 
 namespace modules\video;
+
 /**
- * model file for doing file uploads
- *
- * @package     content
+ * Module for scaling uploading and scaling videos. 
+ * @package     video
  */
 
 /**
@@ -30,11 +30,12 @@ use diversen\upload;
 use diversen\uri\manip;
 use diversen\user;
 use diversen\strings;
-//use diversen\html\video;
+
+use modules\video\config;
+
 
 /**
- * class content video is used for keeping track of file changes
- * in db. Uses object fileUpload
+ * Module for adding and scaling videos. 
  */
 class module {
 
@@ -164,31 +165,22 @@ class module {
         }
         
         self::setHeadlineTitle('add');
-        
         layout::setMenuFromClassPath($options['reference']);
 
-        //$video = new self($options);
         $this->viewInsert();
-
         $options['admin'] = true;
-        
-        
         $rows = self::getAllvideoInfo($options, 2);
         
         if (!empty($rows)) {
-            echo html::getHeadline('Uploaded videos', 'h3');
+            echo html::getHeadline(lang::translate('Uploaded videos'), 'h3');
             echo $this->displayAllVideo($rows, $options);
         }
         
         $rows = self::getAllvideoInfo($options, 1);
         if (!empty($rows)) {
-            echo html::getHeadline('Videos under progress', 'h3');
+            echo html::getHeadline(lang::translate('Videos under progress'), 'h3');
             echo $this->displayAllVideo($rows, $options);
         }
-        
-        
-        
-
     }
 
     /**
@@ -214,6 +206,10 @@ class module {
         $this->viewDelete($id);
     }
 
+    /** 
+     * Action for editing a video
+     * @return void
+     */
     public function editAction() {
 
         if (!session::checkAccessControl('video_allow_edit')) {
@@ -240,7 +236,6 @@ class module {
             self::$allow = conf::getModuleIni('video_allow_edit');
         }
         
-
         if (!isset($options['maxsize'])) {
             $maxsize = conf::getModuleIni('video_max_size');
             if ($maxsize) {
@@ -384,14 +379,12 @@ class module {
     public static function getVideoHtml5($options) {
 
         self::includePlayer();
-        //$str = video_player_include();
         $info = self::getAllVideoInfo($options);
         $str = '';
         foreach ($info as $video) {
             
             $str.= "<hr />";
             $str.= video_player_get_html5($video);
-            //$str.= "<hr />";
         }
         return $str;
     }
@@ -471,6 +464,7 @@ class module {
             return false;
         }
         
+        
         $res = move_uploaded_file($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
             unlink($file['tmp_name']);
@@ -520,26 +514,14 @@ window.onload = function() {
         $full_to = conf::getFullFilesPath($base . "/$filename.$type"); 
         $output_file = conf::getFullFilesPath($base) . "/$filename.$type.output";
         $pid_file = conf::getFullFilesPath($base) . "/$filename.$type.pid";
-        
-        // if ($type == 'webm') {
-            // $command = "ffmpeg -i $full_from -c:v libx264 c:a libvorbis copy $full_to";
-        //    $command = "ffmpeg -i $full_from -vcodec libvpx -acodec libvorbis $full_to";
-            //$command = "ffmpeg -i $full_from -c:v libvpx -b:v 1M -c:a libvorbis $full_to";
-        //} else {
-        //$command = "ffmpeg -i $full_from -s 640x480 -vcodec mpeg4 -b 4000000 -acodec libmp3lame -ab 192000 $full_to";
-        
+
         $width = conf::getModuleIni('video_scale_width');
         if (!$width ) {
             $width = '720';
         }
-        
-        
+                
         $full_from = escapeshellarg($full_from);
         $command = "ffmpeg -i $full_from -vf 'scale=$width:trunc(ow/a/2)*2' -c:v libx264  $full_to";
-         //$command = "ffmpeg -i $full_from -s 640x480 -c:v libx264  $full_to";
-        // -vf "scale=640:-1" 
-        
-        //}// -c:a copy
 
         log::debug($command);
         $bg->execute($command, $output_file, $pid_file);
@@ -953,10 +935,10 @@ setInterval(function(){
                     $redirect = self::getRedirectVideoMain($options);
                     http::locationHeader($redirect, lang::translate('Video was edited'));
                 } else {
-                    html::errors(self::$errors);
+                    echo html::getErrors(self::$errors);
                 }
             } else {
-                html::errors(self::$errors);
+                echo html::getErrors(self::$errors);
             }
         }
         $this->formInsert('update', uri::fragment(2));
