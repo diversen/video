@@ -370,27 +370,6 @@ class module {
         die;
     }
     
-    /**
-     * Get videos connected to a entity: 
-     * 
-     * @param type $options
-     * @return type
-     */
-    public static function getVideoHtml5($options) {
-
-        self::includePlayer();
-        $info = self::getAllVideoInfo($options);
-        $str = '';
-        foreach ($info as $video) {
-            
-            $str.= "<hr />";
-            $str.= video_player_get_html5($video);
-        }
-        return $str;
-    }
-    
-    public static $player = 'html'; // Epub or HTML
-    
     
     /**
      * Check if video mime is allowed. 
