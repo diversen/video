@@ -97,6 +97,11 @@ class module {
      */
     public static function checkAccess ($options) {
         
+        // Admin user is allowed
+        if (session::isAdmin()) {
+            return true;
+        }
+        
         // check access
         if (!session::checkAccessClean(self::$allow)) {
             return false;
