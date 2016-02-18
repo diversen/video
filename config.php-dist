@@ -3,19 +3,20 @@
 namespace modules\video;
 
 /**
- * Image config class
+ * Video example config class
  */
 class config {
     
     /**
-     * Check access acording to image parent_id, e.g. a blog post ID
+     * Check access acording to video parent_id, e.g. a blog post ID
      * @param int $id parent_id
      * @return boolean $res
      */
     public function checkAccess ($id) {}
     
     /**
-     * Check access to download according to image ID
+     * Check access to download video according to video ID
+     * NOTE: Not implemented
      * @param int $id image ID
      * @return boolean $res
      */
