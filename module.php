@@ -2,15 +2,6 @@
 
 namespace modules\video;
 
-/**
- * Module for scaling uploading and scaling videos. 
- * @package     video
- */
-
-/**
- * @ignore
- */
-
 use diversen\bgJob;
 use diversen\conf;
 use diversen\db;
@@ -38,27 +29,58 @@ use \modules\video\config;
  */
 class module {
 
-    public  $errors = null;
-    public  $status = null;
-    public  $parent_id;
-    public  $fileId;
-    public  $allow;
-    public  $maxsize = 2000000; // 2 mb max size
-    public  $options = array();
-    public  $fileTable = 'video';
-
+        /**
+     * Var holding errors
+     * @var array 
+     */
+    public $errors = array();
     
     /**
-     * get options from QUERY
-     * @return array $options
+     * Default max size upload in bytes
+     * @var int 
      */
-    public  function getOptions() {
+    public $maxsize = 2000000;
+    
+    /**
+     * Var holding options
+     * @var array
+     */
+    public $options = array();
+    
+    /**
+     * Image base path
+     * @var string
+     */
+    public $path = '/video';
+    
+    /**
+     * Image base table
+     * @var string
+     */
+    public $fileTable = 'video';
+    
+    /**
+     * Var holding upload status
+     * @var type 
+     */
+    public  $status = null;
+  
+    /**
+     * Get options from $_GET
+     * @return array $options ['parent_id', 'return_url', 'reference', 'query']
+     */
+    public function getOptions() {
+        
+        // Check for sane options
+        if (!isset($_GET['parent_id'], $_GET['return_url'], $_GET['reference'] )) { 
+            return false;
+        }
+        
         $options = array
             ('parent_id' => $_GET['parent_id'],
             'return_url' => $_GET['return_url'],
             'reference' => $_GET['reference'],
-            'query' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY)
-            );
+            'query' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY));
         return $options;
     }
     
@@ -89,32 +111,45 @@ class module {
         template::setTitle($title);
     }
     
-        /**
-     * check access to module based on options and blog ini settings 
-     * @param array $options
-     * @return void
+    /**
+     * Check access to module based on options and ini settings and action param
+     * @param string $action 'add', 'edit', 'delete' (NOT used yet)
+     * @return boolean $res true if allowed else false
      */
-    public  function checkAccess ($options) {
+    public function checkAccess ($action = 'add') {
         
-        // Admin user is allowed
+        // Options used ['parent_id', 'reference']
+        $options = $this->getOptions();
+        if (!$options) {
+            return false;
+        }
+    
+        // Admin user is always allowed
         if (session::isAdmin()) {
             return true;
         }
         
-        // check access
-        if (!session::checkAccessClean($this->allow)) {
+        // Who is allowed - e.g. user or admin 
+        // If 'admin' then only admin users can add images
+        $allow = conf::getModuleIni('video_allow_edit');
+        if (!session::checkAccessClean($allow)) {
             return false;
         }
 
-        // if allow is set to user - this module only allow user to edit his images
-        // to references and parent_ids which he owns
-        if ($this->allow == 'user') {
-            
+        // Fine tuning of access can be set in image/config.php
+        if (method_exists('modules\video\config', 'checkAccess')) {
+            $check = new \modules\video\config();
+            return $check->checkAccess($options['parent_id']);
+        }
+        
+        
+        // If allow is set to user - this module only allow user to edit the images
+        // he owns - based on 'reference' and 'parent_id'
+        if ($allow == 'user') {
             if (!admin::tableExists($options['reference'])) {
                 return false;
             }
-            if (!user::ownID($table, $options['parent_id'], session::getUserId())) {
-                moduleloader::setStatus(403);
+            if (!user::ownID($options['reference'], $options['parent_id'], session::getUserId())) {
                 return false;
             }
         }
@@ -154,21 +189,15 @@ class module {
      */
     public function addAction() {
 
-        if (!isset($_GET['parent_id'], $_GET['return_url'], $_GET['reference'] )) { 
+        // Check access
+        if (!$this->checkAccess()) {
             moduleloader::setStatus(403);
             return false;
         }
         
-        // get options from QUERY
+        // Options ARE sane now
         $options = $this->getOptions();
-        
-        if (!$this->checkAccess($options)) {
-            moduleloader::setStatus(403);
-            return false;
-        }
-        
         $this->setHeadlineTitle('add');
-        // layout::setMenuFromClassPath($options['reference']);
 
         $this->viewInsert();
         $options['admin'] = true;
@@ -192,20 +221,14 @@ class module {
      */
     public function deleteAction() {
 
-        $id = uri::fragment(2);
-        $options = $this->getOptions();
-        if (!session::checkAccessControl('video_allow_edit')) {
-            return;
-        }
-        
-        if (!$this->checkAccess($options)) {
+        // Check access
+        if (!$this->checkAccess()) {
             moduleloader::setStatus(403);
             return false;
         }
         
-        // layout::setMenuFromClassPath($options['reference']);
+        $id = uri::fragment(2);
         $this->setHeadlineTitle('delete');
-        
         $this->viewDelete($id);
     }
 
@@ -215,12 +238,8 @@ class module {
      */
     public function editAction() {
 
-        if (!session::checkAccessControl('video_allow_edit')) {
-            return;
-        }
-        
-        $options = $this->getOptions();
-        if (!$this->checkAccess($options)) {
+        // Check access
+        if (!$this->checkAccess()) {
             moduleloader::setStatus(403);
             return false;
         }
@@ -232,19 +251,10 @@ class module {
     /**
      * constructor sets init vars
      */
-    function __construct($options = null) {
-
+    public function __construct($options = null) {
+        moduleloader::includeModule('image');
         $this->options = $options;
-        if (!isset($options['allow'])) {
-            $this->allow = conf::getModuleIni('video_allow_edit');
-        }
-        
-        if (!isset($options['maxsize'])) {
-            $maxsize = conf::getModuleIni('video_max_size');
-            if ($maxsize) {
-                $this->options['maxsize'] = $maxsize;
-            }
-        }        
+      
     }
 
     /**
@@ -734,10 +744,8 @@ setInterval(function(){
      * @param int $id
      * @return array $row with info 
      */
-    public  function getSingleFileInfo($id = null) {
-        if (!$id) {
-            $id = $this->fileId;
-        }
+    public  function getSingleFileInfo($id) {
+
         $db = new db();
         $search = array(
             'id' => $id
@@ -812,7 +820,7 @@ setInterval(function(){
         if (isset($_POST['submit'])) {
             // $this->uploadJs();
             $this->validateInsert();
-            if (!isset($this->errors)) {
+            if (empty($this->errors)) {
                 
                 // Get array with info about the uploaded files
                 $files = $this->getUploadedFilesArray();  
@@ -856,27 +864,32 @@ setInterval(function(){
         $redirect = $this->getRedirectVideoMain($options);
         
         if (isset($_POST['submit'])) {
-            if (!isset($this->errors)) {
+            if (empty($this->errors)) {
                 $res = $this->deleteFile($id);
                 if ($res) { 
                     http::locationHeader($redirect, lang::translate('Video was deleted'));
                 }
             } else {
-                html::errors($this->errors);
+                echo html::getErrors($this->errors);
             }
         }
-        
+        echo $this->formDelete();
+        return;
+    }
+    
+    /**
+     * Delete form
+     * @return string $html
+     */
+    public function formDelete() {
+                
         $f = new html();
-
         $f->formStart('file_upload_form');
-
         $legend = lang::translate('Delete video');
         $f->legend($legend);
         $f->submit('submit', lang::translate('Delete'));
         $f->formEnd();
-        echo $f->getStr();
-
-        return;
+        return $f->getStr();
     }
     
     public  function getRedirectVideoMain ($options) {
@@ -891,7 +904,7 @@ setInterval(function(){
 
         $options = $this->getOptions();
         if (isset($_POST['submit'])) {
-            if (!isset($this->errors)) {
+            if (empty($this->errors)) {
                 $res = $this->updateFile();
                 if ($res) {
                     $redirect = $this->getRedirectVideoMain($options);
