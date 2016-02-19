@@ -652,7 +652,7 @@ setInterval(function(){
      * @param array $options
      * @return string  
      */
-    public  function subModuleAdminOption ($options){        
+    public static function subModuleAdminOption ($options){        
         $url = "/video/add?" . http_build_query($options);
         $extra = array();
         if (isset($options['options'])) {
