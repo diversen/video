@@ -84,6 +84,20 @@ class module {
         return $options;
     }
     
+    /**
+     * Test action for getting total blob size of all images 
+     * from a parent_id
+     */
+    public function sizeAction () {
+        
+        moduleloader::setModuleIniSettings('content');
+        $parent = uri::fragment(2);
+        $s = new \modules\video\size();
+        $reference = conf::getModuleIni('content_parent');
+        echo $s->getFilesSizeFromParentId($reference, $parent);
+    }
+
+    
         /**
      * set a headline and page title based on action
      * @param string $action 'add', 'edit', 'delete'
@@ -367,20 +381,33 @@ class module {
                     'reference' => $reference, 
                     'parent_id' => $parent_id)
                 );
+        
+        $rows = $this->attachVideoLinks($rows, $reference, $parent_id);
+        $videos = array ('videos' => $rows);
+        echo json_encode($videos);
+        die;
+    }
+    
+    /**
+     * Attach video links to rows
+     * @param array $rows video rows
+     * @return array $rows video rows with links
+     */
+    public function attachVideoLinks ($rows, $reference, $parent_id) {
         foreach ($rows as $key => $val) {
             
-            $base = "/video/$reference/$parent_id";
-            $mp4 = conf::getWebFilesPath($base . "/$val[title].mp4");
+            $base = "/video/$reference/$parent_id/$val[title].mp4";
+            $mp4 = conf::getWebFilesPath($base);
             $rows[$key]['mp4'] = $mp4; //$this->path . "/download/$val[id]/" . strings::utf8SlugString($val['title']);
             //$rows[$key]['url_s'] = $this->path . "/download/$val[id]/" . strings::utf8SlugString($val['title']) . "?size=file_thumb";
+            
+            $rows[$key]['path'] = conf::pathFiles() . $base; 
+            
             $str = strings::sanitizeUrlRigid(html::specialDecode($val['abstract']));
             $rows[$key]['abstract'] = $str;
             
         }
-        
-        $videos = array ('videos' => $rows);
-        echo json_encode($videos);
-        die;
+        return $rows;
     }
     
     
