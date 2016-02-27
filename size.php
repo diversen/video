@@ -36,6 +36,7 @@ class size {
                 }
             }
         }
+        
         return $bytes;   
     }
 }
