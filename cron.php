@@ -6,15 +6,15 @@ use Cron\CronExpression;
 
 class cron {
     
-    public static function run() {
+    public function run() {
 
         $minute = CronExpression::factory('* * * * *');
         if ($minute->isDue()) {
-            self::checkUploads();
+            $this->checkUploads();
         } 
     }
     
-    public static function checkUploads () {
-        echo "Is due: Hello world\n";
+    public function checkUploads () {
+        // echo "Is due: Hello world\n";
     } 
 }
