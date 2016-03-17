@@ -419,7 +419,12 @@ class module {
     public function isAllowedMime($file) {
         
         $prim_type = file::getPrimMime($file);
+        
         if ($prim_type == 'video') {
+            return true;
+        }
+        
+        if ($prim_type == 'audio') {
             return true;
         }
         
