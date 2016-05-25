@@ -20,8 +20,9 @@ use diversen\upload;
 use diversen\uri\manip;
 use diversen\user;
 use diversen\strings;
+use diversen\layout;
 
-use \modules\video\config;
+// use \modules\video\config;
 
 
 /**
@@ -211,6 +212,8 @@ class module {
         
         // Options ARE sane now
         $options = $this->getOptions();
+        layout::setMenuFromClassPath($options['reference']);
+        
         $this->setHeadlineTitle('add');
 
         $this->viewInsert();
@@ -241,6 +244,9 @@ class module {
             return false;
         }
         
+        $options = $this->getOptions();
+        layout::setMenuFromClassPath($options['reference']);
+        
         $id = uri::fragment(2);
         $this->setHeadlineTitle('delete');
         $this->viewDelete($id);
@@ -257,6 +263,9 @@ class module {
             moduleloader::setStatus(403);
             return false;
         }
+        
+        $options = $this->getOptions();
+        layout::setMenuFromClassPath($options['reference']);
 
         $this->setHeadlineTitle('edit');
         $this->viewUpdate();
@@ -717,20 +726,11 @@ setInterval(function(){
      * @return string 
      */
     public function displayAllVideo($rows, $options) {
-        $str = '';
-
+        $str = '<ul class="uk-list  uk-list-striped ">';
         foreach ($rows as $val) {
-            $title = lang::translate('Download video');
-            $title.= MENU_SUB_SEPARATOR_SEC;
-            $title.= $val['title'];
-
-            $link_options = array('title' => $val['abstract']);
-
-            /*
-            $str.= html::createLink(
-                            "$val[title]", $title, $link_options
-            );
-            */
+            
+            $str = '<li>';
+            
             $val = html::specialEncode($val);
             $str.=$val['abstract'];
             // as a sub module the sub module can not know anything about the
@@ -749,8 +749,9 @@ setInterval(function(){
                 $str.= MENU_SUB_SEPARATOR;
                 $str.= html::createLink($delete, lang::translate('Delete'));
             }
-            $str.= "<hr />\n";
+            $str.= "</li>";
         }
+        $str.='</ul>';
         return $str;
     }
 
