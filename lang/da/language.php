@@ -13,7 +13,6 @@ $LANG['Title'] = 'Titel';
 $LANG['Content-type is not allowed'] = 'Indholds-typen er ikke tilladt';
 $LANG['No files were selected'] = 'Ingen filer blev uploadet';
 $LANG['Videos'] = 'Videoer';
-$LANG['Download video'] = 'Vis video';
 $LANG['Edit'] = 'Rediger';
 $LANG['Delete'] = 'Slet';
 $LANG['Video(s) uploaded. They are now being transformed. You may move away, and return to see the progress'] = 'Video(er) blev uploadet. De er nu ved at blive transformeret. Du må gerne bevæge dig væk fra denne side. Du kan altid vende tilbage til denne side og se fremgang.';

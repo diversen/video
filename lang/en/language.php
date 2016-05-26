@@ -15,7 +15,6 @@ $LANG['Title'] = 'Title';
 $LANG['Content-type is not allowed'] = 'Content-type is not allowed';
 $LANG['No files were selected'] = 'No files were selected';
 $LANG['Videos'] = 'Videos';
-$LANG['Download video'] = 'Download video';
 $LANG['Edit'] = 'Edit';
 $LANG['Delete'] = 'Delete';
 $LANG['Video(s) uploaded. They are now being transformed. You may move away, and return to see the progress'] = 'Video(s) uploaded. They are now being transformed. You may move away, and return to see the progress';
