@@ -687,6 +687,18 @@ setInterval(function(){
         $res = $db->delete($this->fileTable, 'id', $id);
         return $res;
     }
+    
+    /**
+     * Delete all videos
+     * @param int $id
+     * @param string $reference
+     */
+    public function deleteAll ($id, $reference) {
+        $rows = q::select($this->fileTable)->filter('parent_id =', $id)->condition('AND')->filter('reference =', $reference)->fetch();
+        foreach($rows as $row) {
+            $this->deleteFile($row['id']);
+        }
+    } 
 
     /**
      * get admin when operating as a sub module
