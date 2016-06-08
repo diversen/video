@@ -491,12 +491,11 @@ class module {
             return false;
         }
 
-        $uniqid = uniqid();
+        $uniqid = md5(uniqid());
         if (!$this->isAllowedMime($file['tmp_name'])) {
             $this->errors[] = lang::translate('Content-type is not allowed');
             return false;
         }
-        
         
         $res = move_uploaded_file($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
