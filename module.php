@@ -131,7 +131,7 @@ class module {
      * @param string $action 'add', 'edit', 'delete' (NOT used yet)
      * @return boolean $res true if allowed else false
      */
-    public function checkAccess ($action = 'add') {
+    public function checkAccess ($action = 'edit') {
         
         // Options used ['parent_id', 'reference']
         $options = $this->getOptions();
@@ -152,9 +152,9 @@ class module {
         }
 
         // Fine tuning of access can be set in image/config.php
-        if (method_exists('modules\video\config', 'checkAccess')) {
+        if (method_exists('modules\video\config', 'checkAccessParentId')) {
             $check = new \modules\video\config();
-            return $check->checkAccess($options['parent_id']);
+            return $check->checkAccessParentId($options['parent_id'], $action);
         }
         
         
@@ -205,7 +205,7 @@ class module {
     public function addAction() {
 
         // Check access
-        if (!$this->checkAccess()) {
+        if (!$this->checkAccess('edit')) {
             moduleloader::setStatus(403);
             return false;
         }
@@ -239,7 +239,7 @@ class module {
     public function deleteAction() {
 
         // Check access
-        if (!$this->checkAccess()) {
+        if (!$this->checkAccess('edit')) {
             moduleloader::setStatus(403);
             return false;
         }
@@ -259,7 +259,7 @@ class module {
     public function editAction() {
 
         // Check access
-        if (!$this->checkAccess()) {
+        if (!$this->checkAccess('edit')) {
             moduleloader::setStatus(403);
             return false;
         }
