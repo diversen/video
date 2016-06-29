@@ -499,7 +499,7 @@ class module {
         
         $res = move_uploaded_file($file['tmp_name'], sys_get_temp_dir() . "/" . $uniqid);
         if ($res) {
-            unlink($file['tmp_name']);
+            //unlink($file['tmp_name']);
             return $this->insertFileDb($uniqid, $file);
         }
         return false;
