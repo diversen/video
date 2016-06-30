@@ -398,28 +398,37 @@ class module {
     }
     
     /**
-     * Attach video links to rows
-     * @param array $rows video rows
-     * @return array $rows video rows with links
+     * Attach full paths, mp4 links, and sanitize abstract
+     * @param array $rows
+     * @param string $reference
+     * @param int $parent_id
+     * @return array $rows
      */
     public function attachVideoLinks ($rows, $reference, $parent_id) {
-        foreach ($rows as $key => $val) {
-            
-            $base = "/video/$reference/$parent_id/$val[title].mp4";
-            $mp4 = conf::getWebFilesPath($base);
-            $rows[$key]['mp4'] = $mp4; //$this->path . "/download/$val[id]/" . strings::utf8SlugString($val['title']);
-            //$rows[$key]['url_s'] = $this->path . "/download/$val[id]/" . strings::utf8SlugString($val['title']) . "?size=file_thumb";
-            
-            $rows[$key]['path'] = conf::pathFiles() . $base; 
-            
-            $str = strings::sanitizeUrlRigid(html::specialDecode($val['abstract']));
-            $rows[$key]['abstract'] = $str;
-            
+        foreach ($rows as $key => $row) {
+            $rows[$key] = $this->attachVideoLink($row, $parent_id, $reference);            
         }
         return $rows;
     }
     
-    
+    /**
+     * Attach full path, mp4 link, and sanitize abstract
+     * @param array $row
+     * @param int $parent_id
+     * @param string $reference
+     * @return array $row
+     */
+    public function attachVideoLink($row, $parent_id, $reference) {
+        $base = "/video/$reference/$parent_id/$row[title].mp4";
+        $mp4 = conf::getWebFilesPath($base);
+        $row['mp4'] = $mp4;
+        $row['path'] = conf::pathFiles() . $base;
+
+        $str = html::specialEncode($row['abstract']);
+        $row['abstract'] = $str;
+        return $row;
+    }
+
     /**
      * Check if video mime is allowed. 
      * @param string $file
@@ -805,9 +814,9 @@ setInterval(function(){
      *
      * @return array row with selected video info
      */
-    public  function getFile() {
+    public  function getFile($id) {
         $db = new db();
-        $row = $db->selectOne($this->fileTable, 'id', $this->fileId);
+        $row = $db->selectOne($this->fileTable, 'id', $id);
         return $row;
     }
 
