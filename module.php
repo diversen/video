@@ -749,7 +749,7 @@ setInterval(function(){
         $str = '<ul class="uk-list  uk-list-striped ">';
         foreach ($rows as $val) {
             
-            $str = '<li>';
+            $str.= '<li>';
             
             $val = html::specialEncode($val);
             $str.=$val['abstract'];
