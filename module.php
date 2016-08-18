@@ -293,9 +293,8 @@ class module {
         
         $f =  new html();
         $values = html::specialEncode($values);
-        
-        //$f->formStart('file_upload_form');
-        $f->formStartAry(array ('onsubmit'=>"setFormSubmitting()"));
+
+        $f->formStartAry();
 
         $legend = '';
         if (isset($id)) {
