@@ -21,6 +21,7 @@ use diversen\uri\manip;
 use diversen\user;
 use diversen\strings;
 use diversen\layout;
+use diversen\html\upload as uploadForm;
 
 // use \modules\video\config;
 
@@ -83,6 +84,27 @@ class module {
             'reference' => $_GET['reference'],
             'query' => parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY));
         return $options;
+    }
+    
+    public function testAction () {
+        $u = new uploadForm();
+        $h = new html();
+        
+       echo html::getHeadline('Doh'); 
+        $h->formStart();
+        
+        $file = $u->fileHtml5("/video/u");
+        
+        $h->addHtml($file);
+        $h->submit('test', 'test');
+        $h->formEnd();
+        
+        echo $h->getStr();
+        
+    }
+    
+    public function uAction () {
+        die('done!');
     }
     
     /**
@@ -442,6 +464,10 @@ class module {
         }
         
         if ($prim_type == 'audio') {
+            return true;
+        }
+        
+        if ($prim_type == 'application') {
             return true;
         }
         
